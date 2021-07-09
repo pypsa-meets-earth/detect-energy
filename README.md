@@ -9,8 +9,6 @@ Also, we provide code to create data for training, testing and creation of data 
 
 ### Dependencies
 
-**torch 1.9.0**
-
-**torchvision 0.10.0**
-
-**...**
+* **torch 1.9.0**
+* **torchvision 0.10.0**
+* **...**
