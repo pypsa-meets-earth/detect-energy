@@ -1,4 +1,4 @@
-## PyPSA for Africa - Machine Learning Energy Infrastructure
+## PyPSA meets Africa - WP 6 - Machine Learning Energy Infrastructure
 
 Code to train NN models to recognize energy infrastrure and employ models.
 
