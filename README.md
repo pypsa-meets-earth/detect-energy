@@ -7,7 +7,7 @@ Trained models are stores in ```./data/models/```.
 Also, we provide code to create data for training, testing and creation of data to be evaluated.
 
 
-#### Dependencies
+### Dependencies
 
 **torch 1.9.0**
 
