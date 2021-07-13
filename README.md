@@ -100,3 +100,6 @@ ssh [student-number]@student.ssh.inf.ed.ac.uk
 ```
 ssh student.compute
 ```
+### Alternative Google Cloud Platform setup
+Not focused on Machine Learning setup, however, might be complementary to the above description.
+[PyPSA Google Cloud Documentation Page](https://pypsa-eur.readthedocs.io/en/latest/cloudcomputing.html#cloud-computing)
