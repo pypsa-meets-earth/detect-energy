@@ -82,7 +82,7 @@ class DummyData(Dataset):
     
     def show_instance(self):
         """
-        calls self.__getitem__ and visualizes the respective
+        calls self.__getitem__ and visualizes the resulting example with bbox
         """
         img, bbox = self.__getitem__(1)
         vis_bbox(img, bbox)
