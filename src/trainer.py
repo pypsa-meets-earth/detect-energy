@@ -11,10 +11,10 @@ from model.utils.creator_tool import AnchorTargetCreator, ProposalTargetCreator
 
 from torch import nn
 import torch as t
-from utils import array_tool as at
-from utils.vis_tool import Visualizer
+from utils_train import array_tool as at
+from utils_train.vis_tool import Visualizer
 
-from utils.config import opt
+from utils_train.config import opt
 from torchnet.meter import ConfusionMeter, AverageValueMeter
 
 LossTuple = namedtuple('LossTuple',

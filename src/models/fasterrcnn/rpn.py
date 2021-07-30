@@ -7,8 +7,8 @@ from torch.nn import functional as F
 import torch
 from torch import nn
 
-from utils.bbox_tools import generate_anchor_base
-from utils.creator_tool import ProposalCreator
+from utils_models.bbox_tools import generate_anchor_base
+from utils_models.creator_tool import ProposalCreator
 
 
 class RegionProposalNetwork(nn.Module):
