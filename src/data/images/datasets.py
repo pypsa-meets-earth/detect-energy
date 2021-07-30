@@ -2,6 +2,8 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 from numpy import random as rd
+import sys
+sys.path.append("./")
 
 from utils import vis_bbox
 
