@@ -10,8 +10,8 @@ import folium
 
 def make_tiles(filename, 
                destpath, 
-               width=256, 
-               height=256, 
+               width=512, 
+               height=512, 
                show=False,
                make_df=True,
                max_tiles=5):
