@@ -57,7 +57,12 @@ def make_tiles(filename,
     saved as .json file
     """
     
-    if make_df: tiles_df = gpd.GeoDataFrame()
+    # setup for dataframe storage
+    if make_df: 
+        slashes = [i for i, sym in enumerate(filename) if sym  == "/"]
+        df_filename = destpath + filename[slashes[-1]+1:-4] + "_tiles.json"
+        tiles_df = gpd.GeoDataFrame()
+    
     
     # obtain geographic information
     srs = osr.SpatialReference()
@@ -95,10 +100,10 @@ def make_tiles(filename,
         curr_bands = [band.ReadAsArray(x, y, width, height) for band in bands]
         curr_coords = np.array([x_origin + x*pixel_width, y_origin + y*pixel_height])
         as_polygon = Polygon([
-                             [curr_coords[1], curr_coords[0]],
-                             [curr_coords[1]+shifts[1], curr_coords[0]],
-                             [curr_coords[1]+shifts[1], curr_coords[0]+shifts[0]],
-                             [curr_coords[1], curr_coords[0]+shifts[0]]
+                             [curr_coords[0], curr_coords[1]],
+                             [curr_coords[0], curr_coords[1]+shifts[1]],
+                             [curr_coords[0]+shifts[0], curr_coords[1]+shifts[1]],
+                             [curr_coords[0]+shifts[0], curr_coords[1]]
                              ])
             
         curr_transform = (curr_coords[1], tf[1], tf[2], curr_coords[0], tf[4], tf[5])
@@ -125,14 +130,17 @@ def make_tiles(filename,
         # transfer geographic data
         dst.SetGeoTransform(curr_transform)
         dst.SetProjection(srs.ExportToWkt())
-        dst = None
         
         if make_df: 
             tiles_df = tiles_df.append({"geometry": as_polygon}, ignore_index=True)
-            with open(destpath + 'tile_geometries.json', 'w') as f:
+            with open(df_filename, 'w') as f:
                 f.write(tiles_df.to_json())
-            
-        if num == max_tiles: break
+        
+        # clear memory
+        del dst
+        
+        # interrupt if desired
+        if num + 1 == max_tiles: break
 
             
 def show_tiles(gdf):
@@ -159,8 +167,8 @@ def show_tiles(gdf):
         
         sim_geo = gpd.GeoSeries(row['geometry']).simplify(tolerance=0.001)
         geo_j = sim_geo.to_json()
-        geo_j = folium.GeoJson(data=geo_j, 
-                                style_function=lambda x: {'fillColor': 'orange'})
+        
+        geo_j = folium.GeoJson(data=geo_j, style_function=lambda x: {'fillColor': 'orange'})
         geo_j.add_to(m)
     
             
@@ -169,5 +177,5 @@ def show_tiles(gdf):
 
 if __name__ == "__main__":
     make_tiles("./images/sierra_leone_001.tif", "./tiles/SL_")         
-    m = show_tiles("./tiles/SLtile_geometries.json")
+    m = show_tiles("./tiles/SL_sierra_leone_001_tiles.json")
     m
