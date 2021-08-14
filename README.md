@@ -1,5 +1,13 @@
 ## PyPSA meets Africa - WP 6 - Machine Learning Energy Infrastructure
 
+### Development Notes
+
+Download the correct TIF Data file from Maxar (please fix this)
+```curl -O https://opendata.digitalglobe.com/events/covid19-sierra-leone/post-event/2020-04-17/105001001C94D700/105001001C94D700.tif```
+
+
+
+
 Code to train NN models to recognize energy infrastrure and employ models.
 
 Trained models are stores in ```./data/models/```.
