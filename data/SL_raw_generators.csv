@@ -1,0 +1,12 @@
+,id,lonlat,tags.power,tags.generator:source,tags.generator:type,tags.generator:method,tags.generator:output:electricity,Type,Area,Country
+0,4539801878,"[-11.034856000000007, 9.080004100000004]",generator,solar,,,,Node,,sierra-leone
+1,4513684935,"[-10.69472909999998, 8.096078700000032]",generator,,,,,Node,,sierra-leone
+2,6860553875,"[-12.521525899999961, 7.523710500000033]",generator,solar,solar_photovoltaic_panel,photovoltaic,yes,Node,,sierra-leone
+3,3589607761,"[-11.745328600000017, 7.959098100000013]",generator,oil,,combustion,,Node,,sierra-leone
+4,2218441144,"[-13.202334699999987, 8.613772800000005]",generator,,,,,Node,,sierra-leone
+5,732635913,"[-12.521513053552102, 7.523803763293895]",generator,solar,solar_photovoltaic_panel,photovoltaic,2 MW,Way,169270.0,sierra-leone
+6,694837959,"[-11.72545559953864, 9.082690816665899]",generator,,,,,Way,20.0,sierra-leone
+7,272907038,"[-10.573664750000006, 8.277931399999986]",generator,,,,,Way,10.0,sierra-leone
+8,965603216,"[-11.835861257463181, 8.750939731969837]",generator,solar,solar_photovoltaic_panel,photovoltaic,yes,Way,1150.0,sierra-leone
+9,364251688,"[-12.182202150000045, 7.613443099999952]",generator,solar,solar_photovoltaic_panel,photovoltaic,,Way,80.0,sierra-leone
+10,301664755,"[-11.693168521596665, 7.7183522765466845]",generator,solar,,,,Way,20.0,sierra-leone
