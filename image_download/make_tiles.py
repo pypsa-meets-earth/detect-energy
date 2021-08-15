@@ -6,6 +6,10 @@ from gdalconst import *
 from shapely.geometry import Polygon
 import geopandas as gpd
 import folium
+import os
+
+
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # move up to root directory
 
 
 def make_tiles(filename, 
@@ -56,11 +60,10 @@ def make_tiles(filename,
     geopandas.GeoDataFrame storing tile geometries
     saved as .json file
     """
-    
+   
     # setup for dataframe storage
-    if make_df: 
-        slashes = [i for i, sym in enumerate(filename) if sym  == "/"]
-        df_filename = destpath + filename[slashes[-1]+1:-4] + "_tiles.json"
+    if make_df:
+        df_filename = destpath + os.path.basename(filename).split(".")[0] + "_tiles.geojson"
         tiles_df = gpd.GeoDataFrame()
     
     
@@ -176,6 +179,8 @@ def show_tiles(gdf):
             
 
 if __name__ == "__main__":
-    make_tiles("./images/sierra_leone_001.tif", "./tiles/SL_")         
-    m = show_tiles("./tiles/SL_sierra_leone_001_tiles.json")
+    SL_inputfile = os.path.join(os.getcwd(), "image_download", "images", "sierra_leone_001.tif")
+    SL_destpath = os.path.join(os.getcwd(), "image_download", "tiles", "SL_")
+    make_tiles(SL_inputfile, SL_destpath)         
+    m = show_tiles(os.path.join(os.getcwd(), "image_download", "tiles", "SL_sierra_leone_001_tiles.json"))
     m
