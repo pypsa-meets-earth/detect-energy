@@ -10,6 +10,8 @@ import rtree
 import pygeos
 import uuid
 
+# os.chdir(os.path.dirname(os.path.abspath(__file__)))  # move up to parent directory
+
 
 def make_polygon_list(path, resume_file=None):
     """
@@ -171,7 +173,7 @@ def make_examples(assets,
             # show resulting array as image
             img = Image.fromarray(new_img, 'RGB')
             
-            img.save(img_path + filename + ".png")
+            img.save(img_path + filename + ".png", quality=100)
 
             # create Polygon of created image
             img_corner = upper_left + pixels*pixel_size
@@ -215,7 +217,10 @@ def make_examples(assets,
 
 
 if __name__ == "__main__":
+    # coverage = make_polygon_list(os.path.join(os.getcwd(), "images"))
     coverage = make_polygon_list("./")
     coverage.to_file("sierra_leone_coverage.json", driver="GeoJSON")
+    # SL_RAW_TOWERS = os.path.join(os.path.dirname(os.getcwd()), "data", "SL_raw_towers.geojson")
+    # make_examples(SL_RAW_TOWERS, coverage, img_path="/examples/", max_length=500)
     make_examples("sierra-leone_raw_towers.geojson", coverage,
                           max_length=500)
