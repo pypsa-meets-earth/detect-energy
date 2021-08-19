@@ -77,43 +77,31 @@ def make_examples(assets,
     respective pixels. The pixels are turned into a png files and saves.
     Additionally, the respective file name, geometry, bbox, is written into
     a new GeoDataFrame
-
     ----------
     Arguments: 
-
     assets : (str or GeoDataFrame)
         path to or GeoDataFrame itself of energy assets
-
     coverage : (str or GeoDataFrame)
         path to or GeoDataFrame itself of geometries satellite imagery 
-
     img_path : (str)
         path to directory where resulting examples will vbe stored
-
     max_length : (int / None)
         restricts number of images created if desired
-
     height : (int)
         number of pixels in y direction
-
     width : (int)
         number of pixels in x direction
-
     ----------
     Returns:
-
     dataset : (GeoDataFrame)
         df of created examples. contains for each image:
             filename (ending in .png)
             for bbox: upperleft and lowerright
             geometry as Polygon   
-
-
     Also
     Saves created examples as .png files to img_path
     In the same directory the GeoJSON of the respective 
     GeoDataFrame dataset is stored in the same directory
-
     """
 
     img_path = os.path.abspath("") + img_path
@@ -170,9 +158,8 @@ def make_examples(assets,
             except:
                 continue
 
-            # show resulting array as image
+            # transform array to image
             img = Image.fromarray(new_img, 'RGB')
-            
             img.save(img_path + filename + ".png", quality=100)
 
             # create Polygon of created image
@@ -214,6 +201,7 @@ def make_examples(assets,
                 dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
                 return
 
+            print("Created {} Examples!".format(len(dataset)))
 
 
 if __name__ == "__main__":
