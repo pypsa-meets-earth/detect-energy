@@ -34,7 +34,7 @@ def vis_image(examples, path, show_box=True, idx=0):
 
     example = examples.iloc[idx]
     plt.figure(figsize=(10, 7))
-    img = plt.imread(path + example.filename)
+    img = plt.imread(path + example.filename + '.png')
     fig = plt.imshow(img)
 
     if show_box:
