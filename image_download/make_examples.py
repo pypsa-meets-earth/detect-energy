@@ -148,7 +148,7 @@ def make_examples(assets,
             x, y = int(pixels[0]), int(pixels[1])
 
             # set up image and new filename
-            filename = str(uuid.uuid4())
+            filename = str(int(row.id))
             new_img = np.zeros((height, width, 3), dtype=np.uint8)
             
             # transfer pixel data
