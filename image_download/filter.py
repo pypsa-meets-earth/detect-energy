@@ -51,12 +51,14 @@ def filter_images(path, black_threshold=.25, cloudy_threshold=.65):
             # continue
             print("Black area detected!")
 
-        # filter blurry and coudy
+        # filter blurry and cloudy
         _, s, _ = np.linalg.svd(img)        
         sv_num = img.shape[0] // 50
         ratio = s[:sv_num].sum() / s.sum()
 
         if ratio > cloudy_threshold:
+            # images_gdf = delete_example(images_gdf, idx)
+            # continue
             print("Cloudy image detected!")
 
         if idx == 200:
