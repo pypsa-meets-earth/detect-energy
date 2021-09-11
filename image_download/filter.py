@@ -34,7 +34,7 @@ def filter_images(path, save_file="", black_threshold=.25, cloudy_threshold=.65)
         Deletes row in df and the respective .png file
         """
         fn = df.iloc[idx]["filename"]
-        os.remove(path + fn + '.png')
+        os.remove(path + fn)
 
         return df.drop([df.index[idx]])  
 
@@ -44,7 +44,7 @@ def filter_images(path, save_file="", black_threshold=.25, cloudy_threshold=.65)
         print("Considering Example {}".format(idx+1))
         
         # only consider greyscales for this analysis
-        img = cv2.imread(path + filename + ".png", 0)
+        img = cv2.imread(path + filename, 0)
         
         print("Showing image with index {}".format(idx))
         cv2_imshow(img)
