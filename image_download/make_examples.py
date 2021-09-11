@@ -152,7 +152,7 @@ def make_examples(assets,
             x, y = int(pixels[0]), int(pixels[1])
 
             # set up image and new filename
-            filename = prefix + str(int(row.id))
+            filename = str(int(row.id))
             new_img = np.zeros((height, width, 3), dtype=np.uint8)
             
             # transfer pixel data
@@ -187,7 +187,7 @@ def make_examples(assets,
             ]
 
             # add resulting image to dataset
-            dataset = dataset.append({"filename": filename,
+            dataset = dataset.append({"filename": prefix + filename,
                                       "ul_x": bbox[0],
                                       "ul_y": bbox[1],
                                       "lr_x": bbox[2],
