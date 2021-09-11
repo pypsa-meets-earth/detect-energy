@@ -38,18 +38,23 @@ def filter_images(path, black_threshold=.25, cloudy_threshold=.65):
 
 
     for idx, filename in images_gdf["filename"].iteritems():
+        
+        print("Considering Example {}".format(idx+1))
+        
+        # only consider greyscales for this analysis
         img = cv2.imread(path + filename + ".png", 0)
         
         print("Showing image with index {}".format(idx))
         cv2_imshow(img)
-        print(img.shape)
+        
         # filter black
         img = img / 255.
         total_sum = img.sum() / 256**2
+        
         if total_sum < black_threshold:
-            # images_gdf = delete_example(images_gdf, idx)
-            # continue
             print("Black area detected!")
+            images_gdf = delete_example(images_gdf, idx)
+            continue
 
         # filter blurry and cloudy
         _, s, _ = np.linalg.svd(img)        
@@ -57,13 +62,12 @@ def filter_images(path, black_threshold=.25, cloudy_threshold=.65):
         ratio = s[:sv_num].sum() / s.sum()
 
         if ratio > cloudy_threshold:
-            # images_gdf = delete_example(images_gdf, idx)
-            # continue
             print("Cloudy image detected!")
+            images_gdf = delete_example(images_gdf, idx)
+            continue
 
-        if idx == 200:
-            break
- 
+    print("Concluded Filtering. Remaining Examples: {}".format(len(images_gdf))) 
+
 
 if __name__ == "__main__":
     filter_images("../examples/")
