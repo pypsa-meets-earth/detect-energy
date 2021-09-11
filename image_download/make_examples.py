@@ -117,6 +117,10 @@ def make_examples(assets,
     assets = gpd.sjoin(assets, coverage, how="inner")
     assets = assets.drop(["index_right"], axis=1)
     
+    # for image labeling
+    pos = [i for i, sign in enumerate(img_path) if sign is +'/'][-1]
+    prefix = img_path[pos+1:]
+    
     # iterate over .tif files
     for i, image in enumerate(coverage["filename"]):
 
@@ -148,7 +152,7 @@ def make_examples(assets,
             x, y = int(pixels[0]), int(pixels[1])
 
             # set up image and new filename
-            filename = str(int(row.id))
+            filename = prefix + str(int(row.id))
             new_img = np.zeros((height, width, 3), dtype=np.uint8)
             
             # transfer pixel data
