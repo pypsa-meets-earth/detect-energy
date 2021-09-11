@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from google.colab.patches import cv2_imshow
 
-def filter_images(path, black_threshold=.25, cloudy_threshold=.65):
+def filter_images(path, save_file="", black_threshold=.25, cloudy_threshold=.65):
     """
     removes images that are
         - too cloudy or blurry based on singular values
@@ -15,6 +15,8 @@ def filter_images(path, black_threshold=.25, cloudy_threshold=.65):
     Arguments:
         path : (str)
             path to directory of interest
+        save_file : (str)
+            desired prefix to filename
         black_threshold : (0 < float < 1)
             (lower) bound on acceptable avg pixel darkness
         cloudy_threshold : (0 < float < 1)
@@ -65,9 +67,14 @@ def filter_images(path, black_threshold=.25, cloudy_threshold=.65):
             print("Cloudy image detected!")
             images_gdf = delete_example(images_gdf, idx)
             continue
-
+            
+        # intermediate saving
+        if (idx+1)%30 == 0:
+            images_gdf.to_file("examples_" + save_file +".geojson", driver="GeoJSON")
+            
     print("Concluded Filtering. Remaining Examples: {}".format(len(images_gdf))) 
-
+    images_gdf.to_file("examples_" + save_file +".geojson", driver="GeoJSON")
+    
 
 if __name__ == "__main__":
-    filter_images("../examples/")
+    filter_images("../examples/", save_file="country")
