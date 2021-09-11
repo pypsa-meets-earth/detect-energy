@@ -187,7 +187,7 @@ def make_examples(assets,
             ]
 
             # add resulting image to dataset
-            dataset = dataset.append({"filename": prefix + filename,
+            dataset = dataset.append({"filename": prefix + filename + '.png',
                                       "ul_x": bbox[0],
                                       "ul_y": bbox[1],
                                       "lr_x": bbox[2],
