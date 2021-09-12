@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname("__file__"), 'detec
 import numpy as np
 
 from make_examples import make_polygon_list, make_examples
-#from filter import filter_images
+from filter import filter_images
 
 def main():
     print(os.getcwd())
