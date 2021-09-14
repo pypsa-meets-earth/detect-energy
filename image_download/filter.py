@@ -42,7 +42,7 @@ def filter_images(path, fn, save_file="_filtered", black_threshold=0, cloudy_thr
         path : (str)
             path to directory of interest
         fn : (str)
-            name of dataframe storing examples
+            name of geojson storing examples
         save_file : (str)
             desired prefix to filename
         black_threshold : (0 < int < 255)
@@ -93,7 +93,7 @@ def filter_images(path, fn, save_file="_filtered", black_threshold=0, cloudy_thr
     # images_gdf = images_gdf.drop(columns=["to_delete"])
       
     print("Concluded Filtering. Remaining Examples: {}".format(len(images_gdf))) 
-    images_gdf.to_file(fn + save_file, driver="GeoJSON")
+    images_gdf.to_file(fn.split('.')[0] + save_file + '.geojson', driver="GeoJSON")
 
 #%%
 filter_images('examples/', "tower_examples.geojson")
