@@ -33,7 +33,7 @@ def to_coco(img_dir, examples, height=512, width=512):
         if img_filename not in img_list: # Checks if the png file exists
             print(f"ERROR: {img_filename} NOT FOUND in {img_dir}")
 
-        image_id = int(exp.filename.split(".")[0])
+        image_id = int(exp.filename.split(".")[0].split("_")[1])
         image["id"] = image_id
         image["width"] = width
         image["height"] = height
