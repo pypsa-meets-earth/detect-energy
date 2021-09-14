@@ -34,10 +34,11 @@ def to_coco(img_dir, examples, height=512, width=512):
             print(f"ERROR: {img_filename} NOT FOUND in {img_dir}")
 
         image_id = int(exp.filename.split(".")[0].split("_")[1])
+        prefix = exp.filename.split("_")[0] + "_"
         image["id"] = image_id
         image["width"] = width
         image["height"] = height
-        image["file_name"] = f"{image_id}.png"
+        image["file_name"] = prefix + f"{image_id}.png"
         image["license"] = 1
         images.append(image)
 
