@@ -13,13 +13,13 @@ for idx, exp in examples.iterrows():
 
     # --- image ---
     image={}
-    img_filename = str(exp.filename) + ".png"
+    img_filename = str(exp.filename)
     img_path = os.path.join(img_dir, img_filename) # Not needed
     
     if img_filename not in img_list: # Checks if the png file exists
-        print("ERROR: EXAMPLE NOT FOUND")
+        print(f"ERROR: {img_filename} NOT FOUND in {img_dir}")
 
-    image_id = int(exp.filename) # TODO: rename filename to id in make_examples
+    image_id = int(exp.filename.split('.')[0])
     image["id"] = image_id
     image["width"] = 256 # TODO : Do not hardcode
     image["height"] = 256
