@@ -44,12 +44,11 @@ def to_coco(img_dir, examples, height=512, width=512):
         # --- annotation ---
         annotation = {}
 
-        bbox_width = 30 # tower_width from make_examples
-        bbox_height = 25 # tower_height from make_examples
-        # TODO: Return width and height instead of "lr_x" and "lr_y" in make_examples
-
         x_top_left = exp.ul_x
         y_top_left = exp.ul_y
+        bbox_width = exp.lr_x - exp.ul_x
+        bbox_height = exp.lr_y - exp.ul_y
+
 
         annotation["id"] = image_id # Just needs a unique id, we only have one annotation per image
         annotation["image_id"] = image_id # Should be same as image["id"]
