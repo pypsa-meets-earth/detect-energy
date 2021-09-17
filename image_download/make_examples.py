@@ -1,3 +1,4 @@
+#%%
 from PIL import Image
 from osgeo import osr, gdal
 import numpy as np
@@ -7,12 +8,12 @@ import geopandas as gpd
 import folium
 import os
 import rtree
-import pygeos
+# import pygeos
 import uuid
 
 # os.chdir(os.path.dirname(os.path.abspath(__file__)))  # move up to parent directory
 
-
+#%%
 def make_polygon_list(path, resume_file=None):
     """
     Creates GeoDataFrame, checks the tif files in a desired dir 
@@ -41,7 +42,7 @@ def make_polygon_list(path, resume_file=None):
     # add data to existing dataframe if desired
     try:
         coverage = gpd.read_file(resume_file)
-        print("Adding coverage to f{resume_file}")
+        print(f"Adding coverage to {resume_file}")
     except:
         coverage = gpd.GeoDataFrame({"filename": [], "geometry": []})
         
@@ -63,13 +64,15 @@ def make_polygon_list(path, resume_file=None):
 
 
 
-
+#%%
 def make_examples(assets, 
                   coverage, 
                   img_path="/../examples/",
                   max_length=10, 
                   height=512, 
-                  width=512):
+                  width=512,
+                  random_offset = True,
+                  seed = None):
     """
     Expects dataframe of energy infrastructure assets in fn. Iterates over df
     and for each asset finds the respective polygon from coverage geodataframe.
@@ -91,6 +94,10 @@ def make_examples(assets,
         number of pixels in y direction
     width : (int)
         number of pixels in x direction
+    random_offset : (bool)
+        set false for zero offset otherwise randomly set
+    seed : (int)
+        seed value for numpy random generator
     ----------
     Returns:
     dataset : (GeoDataFrame)
@@ -114,12 +121,17 @@ def make_examples(assets,
                                 "ul_x": [], "ul_y": [], "lr_x": [], "lr_y": [], 
                                 "geometry": []})
 
+    # bounding_box = gpd.GeoDataFrame({"filename": [], "geometry": []})
+
     assets = gpd.sjoin(assets, coverage, how="inner")
     assets = assets.drop(["index_right"], axis=1)
     
     # for image labeling
-    pos = [i for i, sign in enumerate(img_path) if sign is +'/'][-1]
+    pos = [i for i, sign in enumerate(img_path) if sign is '/'][-1]
     prefix = img_path[pos+1:]
+
+    if len(assets)<max_length:
+        max_length = len(assets)
     
     # iterate over .tif files
     for i, image in enumerate(coverage["filename"]):
@@ -145,8 +157,11 @@ def make_examples(assets,
 
             # add random offset (8 is minimal distance to image boundary)
             offset = np.zeros(2)
-            offset[0] = np.random.randint(-width//2 + 8, width//2 - 8)
-            offset[1] = np.random.randint(-height//2 + 8, height//2 - 8)
+            if random_offset is True:
+                if seed is not None:
+                    np.random.seed(seed)
+                offset[0] = np.random.randint(-width//2 + 8, width//2 - 8)
+                offset[1] = np.random.randint(-height//2 + 8, height//2 - 8)
             
             pixels -= offset
             x, y = int(pixels[0]), int(pixels[1])
@@ -186,6 +201,12 @@ def make_examples(assets,
                     ul[1] + tower_height // 2
             ]
 
+            # geo_bbox = gpd.GeoSeries(p).set_crs("EPSG:4326").to_crs("EPSG:3857").buffer(30)
+            # geo_bbox = geo_bbox.to_crs("EPSG:4326")
+            # geo_bbox = gpd.GeoSeries(p)
+            # bounding_box = bounding_box.append({"filename": filename,"geometry": geo_bbox[0]},ignore_index=True)
+            # bounding_box.set_crs("EPSG:4326", inplace=True)
+
             # add resulting image to dataset
             dataset = dataset.append({"filename": prefix + filename + '.png',
                                       "ul_x": bbox[0],
@@ -195,24 +216,35 @@ def make_examples(assets,
                                       "geometry": img_polygon}, 
                                       ignore_index=True)            
 
-            # save results inbetween
-            if len(dataset)%50 == 0:
-                dataset = dataset.set_crs(epsg=4326)
-                dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
+            # # save results inbetween
+            # if len(dataset)%50 == 0:
+            #     dataset = dataset.set_crs(epsg=4326)
+            #     dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
+            #     bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
+            if len(dataset)%10 == 0:
+                print("Created {} Examples!".format(len(dataset)))
+
 
             # early stoppage
             if len(dataset) == max_length:
+                prev_len = len(dataset)
+                dataset.drop_duplicates(inplace=True) # For assets that exitst in overlapping coverage areas
+                new_len = len(dataset)
+                if new_len < prev_len:
+                    print(f"removed {prev_len - new_len} duplicates")
+                    print(f"remaining {new_len} examples")
                 dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
+                # bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
                 return
 
-            print("Created {} Examples!".format(len(dataset)))
+            
 
-
+#%%
 if __name__ == "__main__":
-    # coverage = make_polygon_list(os.path.join(os.getcwd(), "images"))
-    coverage = make_polygon_list("./")
-    coverage.to_file("sierra_leone_coverage.json", driver="GeoJSON")
-    # SL_RAW_TOWERS = os.path.join(os.path.dirname(os.getcwd()), "data", "SL_raw_towers.geojson")
-    # make_examples(SL_RAW_TOWERS, coverage, img_path="/examples/", max_length=500)
-    make_examples("sierra-leone_raw_towers.geojson", coverage,
-                          max_length=500)
+    coverage = make_polygon_list(os.path.join(os.getcwd(), "images"))
+    # coverage = make_polygon_list("./")
+    # coverage.to_file("sierra_leone_coverage.json", driver="GeoJSON")
+    SL_RAW_TOWERS = os.path.join(os.path.dirname(os.getcwd()), "data", "SL_raw_towers.geojson")
+    make_examples(SL_RAW_TOWERS, coverage, img_path="/examples/", max_length=500, random_offset= False, seed=2021)
+    # make_examples("sierra-leone_raw_towers.geojson", coverage,
+    #                       max_length=500)
