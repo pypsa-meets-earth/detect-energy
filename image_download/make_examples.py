@@ -9,7 +9,6 @@ import folium
 import os
 import rtree
 # import pygeos
-import uuid
 
 # os.chdir(os.path.dirname(os.path.abspath(__file__)))  # move up to parent directory
 
@@ -228,14 +227,14 @@ def make_examples(assets,
             # early stoppage
             if len(dataset) == max_length:
                 prev_len = len(dataset)
-                dataset.drop_duplicates(inplace=True) # For assets that exitst in overlapping coverage areas
+                dataset.drop_duplicates(subset=['filename'], inplace=True) # For assets that exitst in overlapping coverage areas
                 new_len = len(dataset)
                 if new_len < prev_len:
                     print(f"removed {prev_len - new_len} duplicates")
                     print(f"remaining {new_len} examples")
                 dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
                 # bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
-                return
+                return None
 
             
 

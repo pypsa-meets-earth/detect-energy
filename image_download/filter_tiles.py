@@ -158,7 +158,7 @@ def verify_df_img(gdf_path):
         print(f"Number of filenames in {gdf_path}: {len(df_list)}")
         
     # ------- Duplicates Test
-    df_dup_len = vdf.duplicated().sum()
+    df_dup_len = vdf.duplicated(subset=['filename']).sum()
     if df_dup_len != 0:
         print("Duplicates Test Failed")
         verify = False
