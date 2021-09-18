@@ -8,7 +8,7 @@ import numpy as np
 from make_examples import make_polygon_list, make_examples
 from filter_tiles import filter_images
 
-def make_all_examples():
+def make_all_examples(sl_max=np.inf, gn_max =np.inf):
     print(os.getcwd())
 
     # SIERRA LEONE
@@ -22,7 +22,7 @@ def make_all_examples():
     make_examples(towers_file, 
                   polygons_sl, 
                   img_path="/SL_", 
-                  max_length=np.inf)
+                  max_length=sl_max)
     
     # GHANA
     print("Making Examples for Ghana!")
@@ -35,7 +35,7 @@ def make_all_examples():
     make_examples(towers_file, 
                   polygons_gh, 
                   img_path="/GH_", 
-                  max_length=1000)
+                  max_length=gn_max)
 
     # merge the respective dataframes
     sl = gpd.read_file("SL_tower_examples.geojson")
