@@ -147,7 +147,8 @@ def make_examples(assets,
         pixel_size = np.array([transform[1], transform[5]])
 
         # iterate over assets in that image
-        for idx, row in assets[assets["filename"] == image].iterrows():
+        for row in assets[assets["filename"] == image].itertuples():
+        # for idx, row in assets[assets["filename"] == image].iterrows(): # itertuples is significantly faster
 
             # compute relevant pixels
             p = row.geometry
