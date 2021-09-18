@@ -2,7 +2,7 @@ import os
 import geopandas as gpd
 import numpy as np
 from PIL import Image
-
+import bisect
 
 def im2np(image_path):
     # Read Image as Grayscale
@@ -16,9 +16,9 @@ def get_black_border(img,black_point=0):
     # black_point  is pixel value for black (between 0 and 255, 0 for completely black)
     mask = img>black_point
     height,width = img.shape
-    mask0,mask1 = mask.any(0),mask.any(1)
-    x_start,x_end = mask0.argmax(),width-mask0[::-1].argmax()
-    y_start,y_end = mask1.argmax(),height-mask1[::-1].argmax()
+    mask_x,mask_y = mask.any(axis=0),mask.any(axis=1)
+    x_start,x_end = bisect.bisect_right(mask_x,0),width - bisect.bisect_right(mask_x[::-1],0)
+    y_start,y_end = bisect.bisect_right(mask_y,0),height - bisect.bisect_right(mask_y[::-1],0)
     return y_start,y_end,x_start,x_end
 
 def isBlackBorder(img,black_point=0):
@@ -105,9 +105,14 @@ def filter_images(gdf_path, delete_filtered=False, black_point=0, white_point=18
 
     images_gdf["filter"] = np.zeros(len(images_gdf))
 
-    for idx, filename in images_gdf["filename"].iteritems():
+    for row in images_gdf.itertuples():
+        idx = row.Index
+        filename = row.filename
         
         # print("Considering Example {}".format(idx+1))
+        if idx%10 == 0:
+            print("Filtered-Index {}, Filename {}".format(idx, filename))
+            # images_gdf.to_file("examples_" + save_file +".geojson", driver="GeoJSON")
         
         # only consider greyscales for this analysis
         img, img_path = im2np(img_dir + filename)
@@ -129,10 +134,6 @@ def filter_images(gdf_path, delete_filtered=False, black_point=0, white_point=18
             print(f"Blurry Image Detected! for {img_path}")
             images_gdf.at[idx, "filter"] = 3
 
-            
-        if (idx+1)%30 == 0:
-            print("Index {}, Filename {}".format(idx, filename))
-            # images_gdf.to_file("examples_" + save_file +".geojson", driver="GeoJSON")
     
     if delete_filtered is True:
         print("Deleting Filtered Images")
@@ -147,7 +148,7 @@ def filter_images(gdf_path, delete_filtered=False, black_point=0, white_point=18
 def verify_df_img(gdf_path):
     verify = True
     vdf = gpd.read_file(gdf_path)
-    img_dir = os.path.dirname(gdf_path)
+    img_dir = os.path.dirname(os.path.abspath(gdf_path))
     # ------- Length Test
     df_list = vdf['filename'].to_list()
     img_list = [img for img in os.listdir(img_dir) if img.endswith(".png")]
@@ -184,4 +185,10 @@ def verify_df_img(gdf_path):
 if __name__ == "__main__":
     filter_images('examples/tower_examples.geojson', delete_filtered=True)
     verify_df_img("examples/tower_examples_clean.geojson")
-    
+
+# %%
+# img, img_path = im2np("/home/matin/detect_energy/image_download/GH_6299796594.png")
+# get_black_border(img)
+# isBlackBorder(img)  
+
+
