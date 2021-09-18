@@ -129,6 +129,7 @@ def make_examples(assets,
     pos = [i for i, sign in enumerate(img_path) if sign is '/'][-1]
     prefix = img_path[pos+1:]
 
+    print(f"Maxiumum Number of Examples: {len(assets)}")
     if len(assets)<max_length:
         max_length = len(assets)
     
