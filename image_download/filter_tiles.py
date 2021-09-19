@@ -55,13 +55,13 @@ def isBlurry(img, thresh=.65):
 def remove_images(filtered_df, img_dir):
         f_df = filtered_df
         # Delete Image File
-        for idx, row in f_df.iterrows():
-            filter_value = row["filter"]
-            fn = row["filename"]
+        for row in f_df.itertuples():
+            filter_value = row.filter
+            fn = row.filename
             if filter_value > 0:
                 print(f"removing {fn}, filter = {filter_value}")
-                fn = row["filename"]
-                file_path = os.path.join(img_dir,row["filename"])
+                fn = row.filename
+                file_path = os.path.join(img_dir,row.filename)
                 # print(os.path.exists(file_path))
                 # os.remove(file_path)
                 # Move files instead of deleting for dev 
@@ -185,10 +185,6 @@ def verify_df_img(gdf_path):
 if __name__ == "__main__":
     filter_images('examples/tower_examples.geojson', delete_filtered=True)
     verify_df_img("examples/tower_examples_clean.geojson")
-
-# %%
-# img, img_path = im2np("/home/matin/detect_energy/image_download/GH_6299796594.png")
-# get_black_border(img)
-# isBlackBorder(img)  
-
-
+    # img, img_path = im2np("/home/matin/detect_energy/image_download/GH_6299796594.png")
+    # print(get_black_border(img))
+    # print(isBlackBorder(img))
