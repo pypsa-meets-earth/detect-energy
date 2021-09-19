@@ -50,14 +50,21 @@ def make_all_examples(sl_max=np.inf, gn_max =np.inf):
 
     print("Deleted contributing individual dataframes!")
 
+def split_data(gdf_path, train_ratio=0.8, seed=202):
+    df = gpd.read_file(gdf_path)
+    df_dir = os.path.dirname(os.path.abspath(gdf_path)) +'/'
+    train=df.sample(frac=train_ratio,random_state=seed) #random state is a seed value
+    val=df.drop(train.index)
+    val=val.sample(frac=1,random_state=seed)
+    train.to_file(df_dir + "tower_examples_train.geojson", driver="GeoJSON")
+    val.to_file(df_dir + "tower_examples_val.geojson", driver="GeoJSON")
+    return train, val
+
 
 if __name__ == "__main__":
     make_all_examples()
     # Filtering images for black spots or cloudyness
     filter_images('tower_examples.geojson', delete_filtered=True)
+    train,val = split_data("./tower_examples_clean.geojson", train_ratio=0.8, seed=202)
 
 
-# def split_data(df_dir, df, train_ratio=0.8, seed=202):
-#     train=df.sample(frac=train_ratio,random_state=seed) #random state is a seed value
-#     test=df.drop(train.index)
-#     train.to_file(df_dir + "tower_train.geojson", driver="GeoJSON")
