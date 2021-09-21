@@ -11,52 +11,62 @@ def im2np(image_path):
     im = np.array(im)
     return im, image_path
 
-def get_black_border(img,black_point=0):
+def get_black_border(img):
     # img is 2D image data
-    # black_point  is pixel value for black (between 0 and 255, 0 for completely black)
-    mask = img>black_point
+    # border_value  is pixel value for black (between 0 and 255, 0 for completely black)
+    border_value = 0 # for pure black border
+    mask = img>border_value
     height,width = img.shape
     mask_x,mask_y = mask.any(axis=0),mask.any(axis=1)
     x_start,x_end = bisect.bisect_right(mask_x,0),width - bisect.bisect_right(mask_x[::-1],0)
     y_start,y_end = bisect.bisect_right(mask_y,0),height - bisect.bisect_right(mask_y[::-1],0)
     return y_start,y_end,x_start,x_end
 
-def isBlackBorder(img,black_point=0):
+def isBlackBorder(img):
     height,width = img.shape
-    y_start,y_end,x_start,x_end = get_black_border(img,black_point)
+    y_start,y_end,x_start,x_end = get_black_border(img)
     if (y_start, y_end) == (0,height) and (x_start,x_end) == (0, width):
         return False
     else:
         return True
 
-# Simple Cloud Cover function
-def isCloudy(im, white_point=101, thresh = 0.65):
-    #TODO: Dynamically set white_point
+def get_cloudy(im, white_point=180):
     height,width = im.shape
     # Put threshold to make it binary
-    binarr = np.where(im>white_point, 1, 0)
+    binarr = np.where(im>white_point, 1, 0) #white point is lower limit
     # Find Total sum of 2D array thresh
     total = sum(map(sum, binarr))
     ratio = total/height/width
-    if ratio > thresh:
-        return True
-    else:
-        return False 
+    return ratio
+
+def get_dark(im, black_point=50):
+    height,width = im.shape
+    # Put threshold to make it binary
+    binarr = np.where(im<black_point, 1, 0) #black_point is upper limit
+    # Find Total sum of 2D array thresh
+    total = sum(map(sum, binarr))
+    ratio = total/height/width
+    return ratio
+
+def isCloudy(im, white_point=150, thresh = 0.45):
+    ratio = get_cloudy(im, white_point)
+    return ratio > thresh
+
+def isDark(im, black_point=50, thresh = 0.5):
+    ratio = get_dark(im, black_point)
+    return ratio > thresh
 
 def isBlurry(img, thresh=.65):
     _, s, _ = np.linalg.svd(img)        
     sv_num = img.shape[0] // 50
     ratio = s[:sv_num].sum() / s.sum()
-    if ratio > thresh:
-        return True
-    else:
-        return False
+    return ratio > thresh
 
-def filter_img(img_path, black_point=0, white_point=180, cloudy_threshold=.45, blurry_threshold=.65):
+def filter_img(img_path, black_point=0, dark_threshold=.5, white_point=150, cloudy_threshold=.45, blurry_threshold=.65):
     # filter black border
     # only consider greyscales for this analysis
     img, img_path = im2np(img_path)
-    if isBlackBorder(img,black_point) is True:
+    if isBlackBorder(img):
         print(f"Black Border Detected! for {img_path}")
         return 1
 
@@ -69,6 +79,11 @@ def filter_img(img_path, black_point=0, white_point=180, cloudy_threshold=.45, b
     if isBlurry(img, blurry_threshold):
         print(f"Blurry Image Detected! for {img_path}")
         return 3
+
+    # filter dark
+    if isDark(img,black_point, dark_threshold):
+        print(f"Dark Image Detected! for {img_path}")
+        return 4
 
     return 0
 
@@ -94,12 +109,13 @@ def remove_images(filtered_df, img_dir):
 
         return f_df
 
-def filter_images(gdf_path, delete_filtered=False, black_point=0, white_point=180, cloudy_threshold=.45, blurry_threshold=.65):
+def filter_images(gdf_path, delete_filtered=False, black_point=0, dark_threshold=.5, white_point=150, cloudy_threshold=.45, blurry_threshold=.65):
     """
     adds filter column based on images that
         - have a black border                       (filter = 1)
         - are too cloudy or                         (filter = 2)
         - are too blurry based on singular values   (filter = 3)
+        - are too dark based on singular values     (filter = 3)
 
     ----------
     Arguments:
@@ -111,6 +127,8 @@ def filter_images(gdf_path, delete_filtered=False, black_point=0, white_point=18
             (upper) bound on pixel brightness (0 for black)
         white_point : (0 < int < 255)
             (lower) bound on pixel brightness (255 for white)
+        dark_threshold : (0 < float < 1)
+            (upper) bound on ratio of sum(large) vs sum(all) singular vals
         cloudy_threshold : (0 < float < 1)
             (upper) bound on ratio of sum(large) vs sum(all) singular vals
         blurry_threshold : (0 < float < 1)
@@ -125,38 +143,8 @@ def filter_images(gdf_path, delete_filtered=False, black_point=0, white_point=18
 
     images_gdf["filter"] = np.zeros(len(images_gdf))
 
-    images_gdf["filter"] = images_gdf['filename'].apply(lambda f: filter_img(img_dir + f, black_point, white_point, cloudy_threshold, blurry_threshold))
-
-    # for row in images_gdf.itertuples():
-    #     idx = row.Index
-    #     filename = row.filename
-        
-    #     # print("Considering Example {}".format(idx+1))
-    #     if idx%10 == 0:
-    #         print("Filtered-Index {}, Filename {}".format(idx, filename))
-    #         # images_gdf.to_file("examples_" + save_file +".geojson", driver="GeoJSON")
-        
-    #     # only consider greyscales for this analysis
-    #     img, img_path = im2np(img_dir + filename)
-        
-    #     # filter black border
-    #     if isBlackBorder(img,black_point) is True:
-    #         print(f"Black Border Detected! for {img_path}")
-    #         images_gdf.at[idx, "filter"] = 1
-    #         continue
-
-    #     # filter cloudy
-    #     if isCloudy(img, white_point, cloudy_threshold):
-    #         print(f"Cloudy Image Detected! for {img_path}")
-    #         images_gdf.at[idx, "filter"] = 2
-    #         continue
-
-    #     # filter blurry
-    #     if isBlurry(img, blurry_threshold):
-    #         print(f"Blurry Image Detected! for {img_path}")
-    #         images_gdf.at[idx, "filter"] = 3
-
-    
+    images_gdf["filter"] = images_gdf['filename'].apply(lambda f: filter_img(img_dir + f, black_point, dark_threshold, white_point, cloudy_threshold, blurry_threshold))
+   
     if delete_filtered is True:
         print("Deleting Filtered Images")
         suffix = "_clean"
