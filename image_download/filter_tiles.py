@@ -52,6 +52,26 @@ def isBlurry(img, thresh=.65):
     else:
         return False
 
+def filter_img(img_path, black_point=0, white_point=180, cloudy_threshold=.45, blurry_threshold=.65):
+    # filter black border
+    # only consider greyscales for this analysis
+    img, img_path = im2np(img_path)
+    if isBlackBorder(img,black_point) is True:
+        print(f"Black Border Detected! for {img_path}")
+        return 1
+
+    # filter cloudy
+    if isCloudy(img, white_point, cloudy_threshold):
+        print(f"Cloudy Image Detected! for {img_path}")
+        return 2
+
+    # filter blurry
+    if isBlurry(img, blurry_threshold):
+        print(f"Blurry Image Detected! for {img_path}")
+        return 3
+
+    return 0
+
 def remove_images(filtered_df, img_dir):
         f_df = filtered_df
         # Delete Image File
@@ -105,34 +125,36 @@ def filter_images(gdf_path, delete_filtered=False, black_point=0, white_point=18
 
     images_gdf["filter"] = np.zeros(len(images_gdf))
 
-    for row in images_gdf.itertuples():
-        idx = row.Index
-        filename = row.filename
-        
-        # print("Considering Example {}".format(idx+1))
-        if idx%10 == 0:
-            print("Filtered-Index {}, Filename {}".format(idx, filename))
-            # images_gdf.to_file("examples_" + save_file +".geojson", driver="GeoJSON")
-        
-        # only consider greyscales for this analysis
-        img, img_path = im2np(img_dir + filename)
-        
-        # filter black border
-        if isBlackBorder(img,black_point) is True:
-            print(f"Black Border Detected! for {img_path}")
-            images_gdf.at[idx, "filter"] = 1
-            continue
+    images_gdf["filter"] = images_gdf['filename'].apply(lambda f: filter_img(img_dir + f, black_point, white_point, cloudy_threshold, blurry_threshold))
 
-        # filter cloudy
-        if isCloudy(img, white_point, cloudy_threshold):
-            print(f"Cloudy Image Detected! for {img_path}")
-            images_gdf.at[idx, "filter"] = 2
-            continue
+    # for row in images_gdf.itertuples():
+    #     idx = row.Index
+    #     filename = row.filename
+        
+    #     # print("Considering Example {}".format(idx+1))
+    #     if idx%10 == 0:
+    #         print("Filtered-Index {}, Filename {}".format(idx, filename))
+    #         # images_gdf.to_file("examples_" + save_file +".geojson", driver="GeoJSON")
+        
+    #     # only consider greyscales for this analysis
+    #     img, img_path = im2np(img_dir + filename)
+        
+    #     # filter black border
+    #     if isBlackBorder(img,black_point) is True:
+    #         print(f"Black Border Detected! for {img_path}")
+    #         images_gdf.at[idx, "filter"] = 1
+    #         continue
 
-        # filter blurry
-        if isBlurry(img, blurry_threshold):
-            print(f"Blurry Image Detected! for {img_path}")
-            images_gdf.at[idx, "filter"] = 3
+    #     # filter cloudy
+    #     if isCloudy(img, white_point, cloudy_threshold):
+    #         print(f"Cloudy Image Detected! for {img_path}")
+    #         images_gdf.at[idx, "filter"] = 2
+    #         continue
+
+    #     # filter blurry
+    #     if isBlurry(img, blurry_threshold):
+    #         print(f"Blurry Image Detected! for {img_path}")
+    #         images_gdf.at[idx, "filter"] = 3
 
     
     if delete_filtered is True:
@@ -183,8 +205,11 @@ def verify_df_img(gdf_path):
 
 
 if __name__ == "__main__":
-    filter_images('examples/tower_examples.geojson', delete_filtered=True)
-    verify_df_img("examples/tower_examples_clean.geojson")
+    # filter_images('examples/tower_examples.geojson', delete_filtered=True)
+    filter_images('examples/tower_examples.geojson', delete_filtered=False)
+    f_df = gpd.read_file('examples/tower_examples_filtered.geojson')
+    display(f_df)
+    # verify_df_img("examples/tower_examples_clean.geojson")
     # img, img_path = im2np("/home/matin/detect_energy/image_download/GH_6299796594.png")
     # print(get_black_border(img))
     # print(isBlackBorder(img))
