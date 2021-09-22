@@ -71,7 +71,7 @@ def make_examples(assets,
                   height=512,
                   width=512,
                   random_offset = True,
-                  seed = None
+                  seed = None,
                   examples_per_tower=1):
     """
     Expects dataframe of energy infrastructure assets in fn. Iterates over df
