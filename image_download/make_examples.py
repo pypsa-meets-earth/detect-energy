@@ -136,6 +136,9 @@ def make_examples(assets,
     print(f"Maxiumum Number of Examples: {len(assets)}")
     if len(assets)<max_length:
         max_length = len(assets)
+    
+    if seed is not None:
+        np.random.seed(seed)
 
     # iterate over .tif files
     for i, image in enumerate(coverage["filename"]):
@@ -166,8 +169,6 @@ def make_examples(assets,
 
                 offset = np.zeros(2)
                 if random_offset is True:
-                    if seed is not None:
-                        np.random.seed(seed)
                     offset[0] = np.random.randint(-width//2 + 8, width//2 - 8)
                     offset[1] = np.random.randint(-height//2 + 8, height//2 - 8)
 
