@@ -65,7 +65,6 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
         # set up dataset for current country
         try: 
            dataset = fo.Dataset(name=country)
-           print("creating anew")
         except:
             dataset = fo.load_dataset(country)
             dataset.delete()
@@ -88,6 +87,7 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
         # iterate over files
         for csv, tif, geojson in zip(csv_files, tif_files, geojson_files):        
 
+            print("Opening geojson file: ", geojson)
             # open files and get bands
             annots = gpd.read_file(geojson)
             assets = gpd.read_file(csv)
@@ -165,7 +165,6 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
                 # add main tower in image 
                 bbox = [bb_ul[0], bb_ul[1], bb_lr[0]-bb_ul[0], bb_lr[1]-bb_ul[1]]
                 bbox = (np.array(bbox) / width).tolist()
-                print("primary bounding box: ", bbox)
                 detections.append(fo.Detection(label='tower', bounding_box=bbox))
                 
 
@@ -186,14 +185,14 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
                         w, h = lr - ul
 
                         bbox = [ul[0], ul[1], w, h]
-                        print("Secondary bbox {}".format(bbox))
                         detections.append(fo.Detection(label='tower', bounding_box=bbox))
                 
                 sample["ground_truth"] = fo.Detections(detections=detections)
                 dataset.add_sample(sample)
-
+                
+        
             
-            
+         
         export_dir = os.path.join(base_path, country) + "/examples/"
         label_field = "ground_truth"  
 
@@ -204,15 +203,15 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
               label_field=label_field,
               )
 
-        break 
-
         os.chdir(os.path.abspath(os.path.join('', '../..')))
+
+        break
 
 
 
 if __name__ == "__main__":
     base_path = "/content/drive/MyDrive/PyPSA_Africa_images/"
     os.chdir(base_path)
-    dirs = ['tauranga', 'palmertson']
-    prefixes = ['TA', 'PA']
-    extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, base_path=base_path)
+    dirs = ["china", "mexico", 'brazil']
+    prefixes = ["CH", "ME", "BR"]
+    extract_duke_dataset(dirs, prefixes, imgs_per_tower=1, base_path=base_path)
