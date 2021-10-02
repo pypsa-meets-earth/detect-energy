@@ -80,17 +80,21 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
         file_prefix = csv_files[0][:unders[-1]+1]
         num_files = len(csv_files)
 
-        csv_files = [file_prefix + str(i+1) + '.csv' for i in range(num_files)]  
         tif_files = [file_prefix + str(i+1) + '.tif' for i in range(num_files)]  
         geojson_files = [file_prefix + str(i+1) + '.geojson' for i in range(num_files)]  
 
         # iterate over files
-        for csv, tif, geojson in zip(csv_files, tif_files, geojson_files):        
+        for tif, geojson in zip(tif_files, geojson_files):        
 
             print("Opening geojson file: ", geojson)
             # open files and get bands
             annots = gpd.read_file(geojson)
-            assets = gpd.read_file(csv)
+
+            # make sure geojson contains information
+            if len(annots.columns) == 1:
+                print('Bad geojson detected! Continuing...') 
+                continue
+
             ds = gdal.Open(tif)
             bands = [ds.GetRasterBand(i) for i in range(1, 4)]
             info = gdal.Info(tif, format="json")
@@ -119,11 +123,17 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
                 geom = Polygon([[max(x), max(y)], [max(x), min(y)], [min(x), min(y)], [min(x), max(y)]])
                 return np.array([min(x), min(y)]), np.array([max(x), max(y)]), geom
 
+            # make sure the dataframe contains only towers
+            annots = annots[annots['geometry'].apply(lambda x: isinstance(x, Polygon))]
+            if annots.empty: continue
+
             annots["ul"], annots["lr"], annots['geometry'] = zip(*annots['pixel_coordinates'].map(to_pixels))
 
             tif_width, tif_height = info['size'][0], info['size'][1]
 
             for (curr, tower), i in product(annots.iterrows(), range(imgs_per_tower)):
+
+                if not isinstance(tower.geometry, Polygon): continue
 
                 example_name = prefix + '_' + str(np.random.randint(1e10, 1e11)) + '.png'
 
@@ -166,7 +176,6 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
                 bbox = [bb_ul[0], bb_ul[1], bb_lr[0]-bb_ul[0], bb_lr[1]-bb_ul[1]]
                 bbox = (np.array(bbox) / width).tolist()
                 detections.append(fo.Detection(label='tower', bounding_box=bbox))
-                
 
                 # create Polygon of created image
                 img_corner = np.array([img_ul_x, img_ul_y])
@@ -205,13 +214,24 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
 
         os.chdir(os.path.abspath(os.path.join('', '../..')))
 
-        break
-
 
 
 if __name__ == "__main__":
     base_path = "/content/drive/MyDrive/PyPSA_Africa_images/"
     os.chdir(base_path)
-    dirs = ["china", "mexico", 'brazil']
-    prefixes = ["CH", "ME", "BR"]
+    dirs = [ 
+            'mexico',
+            'arizona',
+            'brazil',
+            'china',
+            # 'hartford',    (APPEARS TO HAVE CORRUPTED GEOJSON FILES)
+            'kansas',
+            'dunedin',
+            'gisborne',
+            'palmertson',
+            'rotorua',
+            'tauranga',
+            'wilmington'
+            ]
+    prefixes = [word[:2].upper() for word in dirs]
     extract_duke_dataset(dirs, prefixes, imgs_per_tower=1, base_path=base_path)
