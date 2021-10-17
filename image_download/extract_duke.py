@@ -133,7 +133,12 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
 
             print("Opening geojson file: ", geojson)
             # open files and get bands
-            annots = gpd.read_file(geojson)
+            try:
+                annots = gpd.read_file(geojson)
+            except:
+                print("Unable to read annotation file {}".format(geojson))
+                print("Continuing to the next file...")
+                continue
 
             # make sure geojson contains information
             if len(annots.columns) == 1:
@@ -264,7 +269,6 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
                  dataset_type=fo.types.COCODetectionDataset,
                  label_field=label_field,
                  )
-                
 
         fix_filenames(os.path.join(base_path, country, 'val/', 'labels.json'))
         '''
@@ -301,7 +305,6 @@ def fix_filenames(file):
     
     for imgs in dictionary['images']:
         imgs['file_name'] = imgs['file_name'].replace('-2', '')
-
     
     with open(file, "w") as f:
         json.dump(dictionary, f)
@@ -323,8 +326,8 @@ if __name__ == "__main__":
             #'arizona',
             #'brazil',
             #'clyde',
-            #'sudan',
-            'mexico'
+            'sudan',
+            # 'mexico'
             ]
     prefixes = [word[:2].upper() for word in dirs]
     extract_duke_dataset(dirs, prefixes, 
