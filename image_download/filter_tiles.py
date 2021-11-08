@@ -62,7 +62,7 @@ def isBlurry(img, thresh=.65):
     ratio = s[:sv_num].sum() / s.sum()
     return ratio > thresh
 
-def filter_img(img_path, black_point=0, dark_threshold=.5, white_point=150, cloudy_threshold=.45, blurry_threshold=.65):
+def filter_img(img_path, black_point=50, dark_threshold=0.5, white_point=150, cloudy_threshold=.45, blurry_threshold=.65):
     # filter black border
     # only consider greyscales for this analysis
     img, img_path = im2np(img_path)
@@ -115,7 +115,7 @@ def filter_images(gdf_path, delete_filtered=False, black_point=0, dark_threshold
         - have a black border                       (filter = 1)
         - are too cloudy or                         (filter = 2)
         - are too blurry based on singular values   (filter = 3)
-        - are too dark based on singular values     (filter = 3)
+        - are too dark based on singular values     (filter = 4)
 
     ----------
     Arguments:
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     # filter_images('examples/tower_examples.geojson', delete_filtered=True)
     filter_images('examples/tower_examples.geojson', delete_filtered=False)
     f_df = gpd.read_file('examples/tower_examples_filtered.geojson')
-    display(f_df)
+    print(f_df)
     # verify_df_img("examples/tower_examples_clean.geojson")
     # img, img_path = im2np("/home/matin/detect_energy/image_download/GH_6299796594.png")
     # print(get_black_border(img))
