@@ -1,4 +1,5 @@
 import os
+import json
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -10,7 +11,8 @@ from shapely.geometry import Polygon
 
 
 
-def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512, base_path=""):
+def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512, base_path="", 
+                         train_ratio=0.8):
     """
     Extracts training images and bounding from region-zips provided in
     'https://figshare.com/articles/dataset/Electric_Transmission_and_
@@ -41,6 +43,8 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
             height of resulting example-images
         base_path : (str)
             path to directories from which all dirs are accessible
+        train_ratio : (float)
+            share of examples labelled as part of training set (rest is val set)
     ----------
     Returns:
         -
@@ -51,10 +55,17 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
         # set up working path
         print("Extracting images from {}...".format(country))
         os.chdir(os.path.join(os.getcwd(), country, "raw"))
+
+        # setup directory for resulting images
+        train_path = "./../train" 
+        if not os.path.isdir(train_path): os.mkdir(train_path)
+        train_path = 'train'
         
         # setup directory for resulting images
-        example_path = "./../examples/"
-        if not os.path.isdir(example_path): os.mkdir(example_path)
+        val_path = "./../val" 
+        if not os.path.isdir(val_path): os.mkdir(val_path)
+        val_path = 'val'
+
 
         # set up resulting dataset of examples (with towers)
         tower_df = gpd.GeoDataFrame({"filename": [], 
@@ -62,15 +73,29 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
                                 #"geometry": []
                                 })
         
-        # set up dataset for current country
+        # set up datasets for current country
         try: 
-           dataset = fo.Dataset(name=country)
+            dataset_train = fo.Dataset(name=country+'_train')
         except:
-            dataset = fo.load_dataset(country)
-            dataset.delete()
-            dataset = fo.Dataset(name=country)
+            dataset_train = fo.load_dataset(country+'_train')
+            dataset_train.delete()
+            dataset_train = fo.Dataset(name=country+'_train')
             # _dataset2 = fo.load_dataset("my_second_dataset")
-        dataset.persistent = False
+        dataset_train.persistent = False
+
+        try: 
+            dataset_val = fo.Dataset(name=country+'_val')
+        except:
+            dataset_val = fo.load_dataset(country+'_val')
+            dataset_val.delete()
+            dataset_val = fo.Dataset(name=country+'_val')
+            # _dataset2 = fo.load_dataset("my_second_dataset")
+        dataset_val.persistent = False
+        
+        # Starting with adding examples to te training set
+        curr_path = train_path
+        curr_dataset = dataset_train
+        switched_already = False
 
         # create list of relevant files
         filelist = os.listdir()
@@ -82,13 +107,38 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
 
         tif_files = [file_prefix + str(i+1) + '.tif' for i in range(num_files)]  
         geojson_files = [file_prefix + str(i+1) + '.geojson' for i in range(num_files)]  
-
+        
         # iterate over files
-        for tif, geojson in zip(tif_files, geojson_files):        
+        for i, (tif, geojson) in enumerate(zip(tif_files, geojson_files)):        
+
+            if (i+1) / num_files > train_ratio and not switched_already: 
+                print('Switching to mode val after {} of {} files due to train ratio'.format(
+                      i, num_files, train_ratio, train_ratio))
+        
+                print(base_path, country, curr_path)
+                export_dir = os.path.join(base_path, country, curr_path) 
+                label_field = "ground_truth"  
+
+                # Export training dataset
+                curr_dataset.export(
+                     export_dir=export_dir,
+                     dataset_type=fo.types.COCODetectionDataset,
+                     label_field=label_field,
+                     )
+                
+                curr_path = val_path
+                curr_dataset = dataset_val
+                switched_already = True
+
 
             print("Opening geojson file: ", geojson)
             # open files and get bands
-            annots = gpd.read_file(geojson)
+            try:
+                annots = gpd.read_file(geojson)
+            except:
+                print("Unable to read annotation file {}".format(geojson))
+                print("Continuing to the next file...")
+                continue
 
             # make sure geojson contains information
             if len(annots.columns) == 1:
@@ -134,6 +184,9 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
             for (curr, tower), i in product(annots.iterrows(), range(imgs_per_tower)):
 
                 if not isinstance(tower.geometry, Polygon): continue
+                
+                if tower['label'] == "DT" or tower['label'] == 'OT': label = 'distribution'
+                elif tower['label'] == 'TT': label = 'transmission'
 
                 example_name = prefix + '_' + str(np.random.randint(1e10, 1e11)) + '.png'
 
@@ -165,17 +218,19 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
 
                 # transform array to image
                 img = Image.fromarray(new_img, 'RGB')
-                img.save(example_path + example_name, quality=100)
+                img.save(os.path.join('./../', curr_path, example_name), quality=100)
 
                 # add to dataset
                 sample = fo.Sample(filepath=os.path.join(
-                                   base_path, country) + "/examples/" + example_name)
+                                   base_path, country, curr_path, example_name)
+                                   )
+                
                 detections = []
 
                 # add main tower in image 
                 bbox = [bb_ul[0], bb_ul[1], bb_lr[0]-bb_ul[0], bb_lr[1]-bb_ul[1]]
                 bbox = (np.array(bbox) / width).tolist()
-                detections.append(fo.Detection(label='tower', bounding_box=bbox))
+                detections.append(fo.Detection(label=label, bounding_box=bbox))
 
                 # create Polygon of created image
                 img_corner = np.array([img_ul_x, img_ul_y])
@@ -188,50 +243,94 @@ def extract_duke_dataset(dirs, prefixes, imgs_per_tower=2, width=512, height=512
 
                 # add secondary towers that happen to be in the same image
                 for j, other in annots.iterrows():
+
+                    if other['label'] == "DT" or other['label'] == 'OT': other_label = 'distribution'
+                    elif other['label'] == 'TT': other_label = 'transmission'
+
                     if img_polygon.contains(other["geometry"]):
                         ul = (other['ul'] - img_corner) / width
                         lr = (other['lr'] - img_corner) / width
                         w, h = lr - ul
 
                         bbox = [ul[0], ul[1], w, h]
-                        detections.append(fo.Detection(label='tower', bounding_box=bbox))
+                        detections.append(fo.Detection(label=other_label, bounding_box=bbox))
                 
                 sample["ground_truth"] = fo.Detections(detections=detections)
-                dataset.add_sample(sample)
                 
-        
-            
-         
-        export_dir = os.path.join(base_path, country) + "/examples/"
+                curr_dataset.add_sample(sample)
+                
+                
+        export_dir = os.path.join(base_path, country, curr_path) 
         label_field = "ground_truth"  
 
-        # Export dataset
-        dataset.export(
-              export_dir=export_dir,
-              dataset_type=fo.types.COCODetectionDataset,
-              label_field=label_field,
-              )
+        # Export training dataset
+        curr_dataset.export(
+                 export_dir=export_dir,
+                 dataset_type=fo.types.COCODetectionDataset,
+                 label_field=label_field,
+                 )
+
+        fix_filenames(os.path.join(base_path, country, 'val/', 'labels.json'))
+        '''
+        print('Done with first dataset!')
+        print(os.getcwd())
+        fix_annots('./../'+curr_path+'/labels.json')
+        print('Succesfully fixed annotations!')
+        '''
 
         os.chdir(os.path.abspath(os.path.join('', '../..')))
 
+
+
+def fix_annots(file):
+    '''
+    adds information on the 'iscrowd' property 
+    for training with detectron2 to an annotation json file
+    made by fiftyone
+    '''
+    dictionary = json.load(open(file)) 
+    for annot in dictionary['annotations']:
+        annot['iscrowd'] = 0
+    
+    with open(file, "w") as f:
+        json.dump(dictionary, f)
+
+
+def fix_filenames(file):
+    '''
+    removes buggy -2 attached by fiftyone to filenames
+    '''
+
+    dictionary = json.load(open(file))
+    
+    for imgs in dictionary['images']:
+        imgs['file_name'] = imgs['file_name'].replace('-2', '')
+    
+    with open(file, "w") as f:
+        json.dump(dictionary, f)
 
 
 if __name__ == "__main__":
     base_path = "/content/drive/MyDrive/PyPSA_Africa_images/"
     os.chdir(base_path)
     dirs = [ 
-            'mexico',
-            'arizona',
-            'brazil',
-            'china',
-            # 'hartford',    (APPEARS TO HAVE CORRUPTED GEOJSON FILES)
-            'kansas',
-            'dunedin',
-            'gisborne',
-            'palmertson',
-            'rotorua',
-            'tauranga',
-            'wilmington'
+            #'china',
+             # 'hartford',    (APPEARS TO HAVE CORRUPTED GEOJSON FILES)
+            #'kansas',
+            #'dunedin',
+            #'gisborne',
+            #'palmertson',
+            #'rotorua',
+            #'tauranga',
+            #'wilmington'
+            #'arizona',
+            #'brazil',
+            #'clyde',
+            'sudan',
+            # 'mexico'
             ]
     prefixes = [word[:2].upper() for word in dirs]
-    extract_duke_dataset(dirs, prefixes, imgs_per_tower=1, base_path=base_path)
+    extract_duke_dataset(dirs, prefixes, 
+                         imgs_per_tower=1, 
+                         height=256, width=256,
+                         base_path=base_path)
