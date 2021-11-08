@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 from PIL import Image
-from filter_tiles import filter_img, im2np, get_cloudy, get_dark
+from filter_tiles import filter_img, im2np, get_cloudy, get_dark, isBlurry
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,7 +15,9 @@ def avg_pixel(im):
     return ratio
 
 #%%
-img_dir = './filter_images/normal/'
+img_dir = './filter_images/not_filtered/'
+
+#%%
 img_fns = [os.path.join(img_dir, img) for img in os.listdir(img_dir)]
 # img_dir = './filter_images/'
 # img_fns = [os.path.join(path, name) for path, subdirs, files in os.walk(img_dir) for name in files]
@@ -29,7 +31,7 @@ im_total = np.zeros((512,512))
 for img in img_fns:
     print(f'filename: {img}')
     
-    filter_v = filter_img(img, black_point=0, dark_threshold=.5, white_point=150, cloudy_threshold=.45, blurry_threshold=.65)
+    filter_v = filter_img(img, black_point=50, dark_threshold=0.5, white_point=110, cloudy_threshold=0.50, blurry_threshold=0.65)
     print(f'Filter Value: {filter_v}')
     
     im, im_path = im2np(img)
@@ -40,6 +42,9 @@ for img in img_fns:
     cloudy_r = get_cloudy(im, 150)
     print(f'Cloudy Ratio {cloudy_r}')
     
+    dark_r = get_dark(im, 50)
+    print(f'Dark Ratio {dark_r}')
+
     dark_r = get_dark(im, 50)
     print(f'Dark Ratio {dark_r}')
     
@@ -70,16 +75,18 @@ plt.hist(im_mean.ravel(), 256, (0, 256))
 plt.show()
 
 #%%
-# img0 = img_fns[0]
-img0 = 'SL_1983090541.png'
+img0 = img_fns[2]
+im_np, im_path = im2np(img0)
+# img_dir = './filter_images/dark/'
+# img0 = 'black2.png'
 # img0 = 'black3.png'
-im_np, im_path = im2np(img_dir + img0)
+# im_np, im_path = im2np(img_dir + img0)
 
 #%%
-i = Image.open(img_dir + img0)
+i = Image.open(img0)
 i.show()
 # %%
-im = Image.open(img_dir + img0).convert('L')
+im = Image.open(img0).convert('L')
 im.show()
 
 # %%
