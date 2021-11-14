@@ -70,6 +70,8 @@ def make_examples(assets,
                   max_length=10,
                   height=512,
                   width=512,
+                  bbox_height=25,
+                  bbox_width=30,
                   random_offset = True,
                   seed = None,
                   examples_per_tower=1):
@@ -200,14 +202,12 @@ def make_examples(assets,
                                       ])
 
                 # get pixels of bbox; format: (ul_x, ul_y, lr_x, lr_y)
-                tower_height = 25
-                tower_width = 30
                 ul = np.array([width//2, height//2]) + offset
                 bbox = [
-                        ul[0] - tower_width // 2,
-                        ul[1] - tower_height // 2,
-                        ul[0] + tower_width // 2,
-                        ul[1] + tower_height // 2
+                        ul[0] - bbox_width // 2,
+                        ul[1] - bbox_height // 2,
+                        ul[0] + bbox_width // 2,
+                        ul[1] + bbox_height // 2
                 ]
 
                 # geo_bbox = gpd.GeoSeries(p).set_crs("EPSG:4326").to_crs("EPSG:3857").buffer(30)
