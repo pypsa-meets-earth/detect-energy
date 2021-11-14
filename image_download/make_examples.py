@@ -245,7 +245,8 @@ def make_examples(assets,
                     dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
                     # bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
                     return None
-
+                
+    dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")            
 
 
 #%%
