@@ -228,7 +228,7 @@ def make_examples(assets,
                 # # save results inbetween
                 # if len(dataset)%50 == 0:
                 #     dataset = dataset.set_crs(epsg=4326)
-                #     dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
+                #     dataset.to_file(os.path.join(img_path, "tower_examples.geojson"), driver="GeoJSON")
                 #     bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
                 if len(dataset)%10 == 0:
                     print("Created {} Examples!".format(len(dataset)))
@@ -242,7 +242,7 @@ def make_examples(assets,
                     if new_len < prev_len:
                         print(f"removed {prev_len - new_len} duplicates")
                         print(f"remaining {new_len} examples")
-                    dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
+                    dataset.to_file(os.path.join(img_path, "tower_examples.geojson"), driver="GeoJSON")
                     # bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
                     return None
 
