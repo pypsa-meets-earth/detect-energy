@@ -114,7 +114,7 @@ def make_examples(assets,
     GeoDataFrame dataset is stored in the same directory
     """
 
-    img_path = os.path.abspath("") + img_path
+    # img_path = os.path.abspath("") + img_path
 
     if isinstance(assets, str): assets = gpd.read_file(assets)
     if isinstance(coverage, str): coverage = gpd.read_file(coverage)
