@@ -124,11 +124,11 @@ def make_examples(assets,
     # set up resulting dataset of examples (with towers)
     dataset = gpd.GeoDataFrame({"filename": [],
                                 "ul_x": [], "ul_y": [], "lr_x": [], "lr_y": [],
-                                "geometry": []})
+                                "geometry": []}).set_crs(epsg=4326)
 
     # bounding_box = gpd.GeoDataFrame({"filename": [], "geometry": []})
 
-    assets = gpd.sjoin(assets, coverage, how="inner")
+    assets = gpd.sjoin(assets, coverage, how="inner").set_crs(epsg=4326)
     assets = assets.drop(["index_right"], axis=1)
 
     # for image labeling
