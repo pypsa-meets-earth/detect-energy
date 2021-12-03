@@ -45,7 +45,7 @@ def setup_detectron(root=''):
     # download model
     gdd.download_file_from_google_drive(file_id=model_id, 
                                         dest_path=dest_path, unzip=True)
-    os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
+    os.remove(os.path.join(os.getcwd(), 'models', 'hold'))
 
 
 
