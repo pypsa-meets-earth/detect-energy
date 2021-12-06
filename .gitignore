@@ -1,2 +1,23 @@
 /cluster-runs/datasets/*
 /cluster-runs/models/*
+
+/image_download/examples/
+/image_download/filter_images/
+/image_download/images/*.tif
+
+token_cache.bin
+
+### JupyterNotebooks ###
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
