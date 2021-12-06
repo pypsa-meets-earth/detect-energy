@@ -70,6 +70,8 @@ def make_examples(assets,
                   max_length=10,
                   height=512,
                   width=512,
+                  bbox_height=25,
+                  bbox_width=30,
                   random_offset = True,
                   seed = None,
                   examples_per_tower=1):
@@ -114,7 +116,7 @@ def make_examples(assets,
     GeoDataFrame dataset is stored in the same directory
     """
 
-    img_path = os.path.abspath("") + img_path
+    # img_path = os.path.abspath("") + img_path
 
     if isinstance(assets, str): assets = gpd.read_file(assets)
     if isinstance(coverage, str): coverage = gpd.read_file(coverage)
@@ -122,11 +124,11 @@ def make_examples(assets,
     # set up resulting dataset of examples (with towers)
     dataset = gpd.GeoDataFrame({"filename": [],
                                 "ul_x": [], "ul_y": [], "lr_x": [], "lr_y": [],
-                                "geometry": []})
+                                "geometry": []}).set_crs(epsg=4326)
 
     # bounding_box = gpd.GeoDataFrame({"filename": [], "geometry": []})
 
-    assets = gpd.sjoin(assets, coverage, how="inner")
+    assets = gpd.sjoin(assets, coverage, how="inner").set_crs(epsg=4326)
     assets = assets.drop(["index_right"], axis=1)
 
     # for image labeling
@@ -200,14 +202,12 @@ def make_examples(assets,
                                       ])
 
                 # get pixels of bbox; format: (ul_x, ul_y, lr_x, lr_y)
-                tower_height = 25
-                tower_width = 30
                 ul = np.array([width//2, height//2]) + offset
                 bbox = [
-                        ul[0] - tower_width // 2,
-                        ul[1] - tower_height // 2,
-                        ul[0] + tower_width // 2,
-                        ul[1] + tower_height // 2
+                        ul[0] - bbox_width // 2,
+                        ul[1] - bbox_height // 2,
+                        ul[0] + bbox_width // 2,
+                        ul[1] + bbox_height // 2
                 ]
 
                 # geo_bbox = gpd.GeoSeries(p).set_crs("EPSG:4326").to_crs("EPSG:3857").buffer(30)
@@ -228,7 +228,7 @@ def make_examples(assets,
                 # # save results inbetween
                 # if len(dataset)%50 == 0:
                 #     dataset = dataset.set_crs(epsg=4326)
-                #     dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
+                #     dataset.to_file(os.path.join(img_path, "tower_examples.geojson"), driver="GeoJSON")
                 #     bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
                 if len(dataset)%10 == 0:
                     print("Created {} Examples!".format(len(dataset)))
@@ -245,7 +245,8 @@ def make_examples(assets,
                     dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")
                     # bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
                     return None
-
+                
+    dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")            
 
 
 #%%
