@@ -20,11 +20,14 @@ def setup_detectron(root=''):
     duke_val_id = '1-17Mll4llFVy5w5o0EFaMrVejVWbPM2j'
     maxar_train_id = '1bW87dtWLwcvkLk-Wq0Z3BAk5deVKTJPw'
     maxar_val_id = '1-5eScmX0bzcW2wUIEyU8o8hjtAKJNXZN'
+    fake_maxar_train_id = '1-1NjCRjZPQOg3-cHGLEkj4jQhUuhfgMU'
+    fake_maxar_val_id = '1WtQvQDm_KUCJ1c1QgU7gJA3bjnFqTztf'
 
     model_id = '1-8VQMy0lI4QKW8hxOKzPv10TPoslC1kc'
 
     # download datasets
     dest_path = os.path.join(os.getcwd(), 'datasets', 'hold')
+    '''
     gdd.download_file_from_google_drive(file_id=maxar_val_id, 
                                         dest_path=dest_path, unzip=True)
     os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
@@ -40,12 +43,23 @@ def setup_detectron(root=''):
     gdd.download_file_from_google_drive(file_id=duke_train_id, 
                                         dest_path=dest_path, unzip=True)
     os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
+    '''
+
+    gdd.download_file_from_google_drive(file_id=fake_maxar_val_id, 
+                                        dest_path=dest_path, unzip=True)
+    os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
+
+    gdd.download_file_from_google_drive(file_id=fake_maxar_train_id, 
+                                        dest_path=dest_path, unzip=True)
+    os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
 
 
     # download model
+    '''
     gdd.download_file_from_google_drive(file_id=model_id, 
                                         dest_path=dest_path, unzip=True)
     os.remove(os.path.join(os.getcwd(), 'models', 'hold'))
+    '''
 
 
 
