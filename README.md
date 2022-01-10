@@ -24,7 +24,7 @@ Many of the methods require quite intricate environments and some even can only 
 
 ## Contact
 
-We are also happy about feedback and potential collaborators. Feel free to reach out at <lukas.franken@ed.ac.uk>!
+We are always happy about feedback and potential collaborators. Feel free to reach out at <lukas.franken@ed.ac.uk>!
 
 
 
