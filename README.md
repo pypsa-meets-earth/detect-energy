@@ -4,11 +4,11 @@ This repository provides methods for __manipulations of satellite imagery__, __t
 
 Together, these aim to provide a full and open-source pipeline to infer electric infrasture on a large scale. This repository is a work in progress and only provides central features.
 
-## How it works
+### How it works
 
  We are building on the dataset of fully annotated grid infrastructure in satellite imagery provided by [a recent work from Duke University](https://arxiv.org/abs/2101.06390) to train our models. However, the quality of scalable imagery can be suboptimal, so we are working on __transferring__ that training performance to images with more scalable quality. For this, we are using approaches such as cycle-GANS and superresolution models.
 
-## Structure
+### Structure
 
 As the repository joins a broad range of methods, the tools are clustered into the following directories:
 
@@ -17,10 +17,10 @@ As the repository joins a broad range of methods, the tools are clustered into t
 3. src/infer: Tools to check performance or conduct inference on whole .tif files
 4. src/utils: Helper-functions used across the other directories
 
-## Installation
+### Installation
 
 Many of the methods require quite intricate environments and some even can only be executed when supported by high-performance GPUs. Therefore, we have stored dependencies for each directory separately, feel free to take a look at the directory you are interested in.
 
-## Contact
+### Contact
 
 We are always happy about feedback and potential collaborators. Feel free to reach out at <lukas.franken@ed.ac.uk>!
