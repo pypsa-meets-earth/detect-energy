@@ -12,7 +12,7 @@ Together, these aim to provide a full and open-source pipeline to infer electric
 
 As the repository joins a broad range of methods, the tools are clustered into the following directories:
 
-1. src/geo: Methods to create annotated datasets from tif files and the respective dataframes 
+1. src/make_data: Methods to create annotated datasets from tif files and the respective dataframes 
 2. src/train: Methods to train object detection networks and enhance training performance in various ways
 3. src/infer: Tools to check performance or conduct inference on whole .tif files
 4. src/utils: Helper-functions used across the other directories
