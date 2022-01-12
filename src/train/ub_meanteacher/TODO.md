@@ -1,3 +1,7 @@
+This directory gathers all methods related to the approach in 
+'Unbiased Teacher for Semi-Supervised Object Detection' from ICLR 2021
+
+
 This is just a base for building a custom training set up using Detectron.
 More in custom_train.py
 Some bits taken from https://github.com/facebookresearch/unbiased-teacher
