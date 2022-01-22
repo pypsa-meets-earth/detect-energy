@@ -15,7 +15,7 @@ from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.data.datasets import register_coco_instances
 
-from image_utils import get_true_images
+from utils.image_utils import get_true_images
 
 
 def register(name, path):
