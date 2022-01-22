@@ -15,6 +15,8 @@ from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.data.datasets import register_coco_instances
 
+from image_utils import get_true_images
+
 
 def register(name, path):
     '''
@@ -47,86 +49,93 @@ def register(name, path):
     json_path = os.path.join(path, 'labels.json')
     register_coco_instances(name, {}, json_path, ds_path)
 
-
-def build_predictor(threshold=0.1, frcnn=True, model_path=None):
+def build_predictor_model(threshold=0.2, model_path=None):
     '''
-    Loads and returns a detectron2.DefaultPredictor with a Faster R-CNN or RetinaNet model
+    Returns predictor and model using detectron2 from files stored in the
+    PyPSA Africa drive
 
     Parameters
     ----------
     threshold : float
-        detection threshold set in the network
-    frcnn : bool
-        loads frcnn if true, else retinanet
+        detection threshold
     model_path : str
-        path to the model to load
+        path to .pth file
 
     Returns
-    ----------
+    ---------
     predictor : detectron2.DefaultPredictor
-        with desired model
+    model : torch.nn.Module
 
-    '''
+    ''' 
 
-    if frcnn: 
-        print('Obtaining faster RCNN from path:')
-    else: 
-        print('Obtaining RetinaNet from path:')
+    print('Building predictor from path:')
     print(model_path)
 
-    if model_path is None: 
-        print('Warning: Returned model will be untrained, as no model_path was passed!')
+    ds_path = f'/content/drive/My Drive/PyPSA_Africa_images/datasets/duke_train/data/' 
+    json_path = f'/content/drive/My Drive/PyPSA_Africa_images/datasets/duke_train/labels.json'
+    ds_name = 'duke'
     
-    if frcnn:
-        current = 'faster_rcnn_R_101_FPN_3x.yaml'
-
-    else:
-        current = 'retinanet_R_101_FPN_3x.yaml'
+    if ds_name in DatasetCatalog.list():
+        DatasetCatalog.remove(ds_name)
+        MetadataCatalog.remove(ds_name)
+    
+    register_coco_instances(ds_name, {}, json_path, ds_path)
+    
+    frcnn = 'faster_rcnn_R_101_FPN_3x.yaml'
     
     cfg = get_cfg() # Model Config
-    cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/"+current))
+    cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/"+frcnn))
 
-    if frcnn:
-        cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
-        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = threshold
-
-    else:
-        cfg.MODEL.RETINANET.NUM_CLASSES = 2
-        cfg.MODEL.RETINANET.SCORE_THRESH_TEST = threshold
+    cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = threshold
+    if model_path is None:
+        model_path = os.path.join('/content', 'drive', 'MyDrive', 'PyPSA_Africa_images', 'models', 
+                                    '2021-11-29_frcnn_180000_dukeset', 'model_final.pth')
     
     cfg.MODEL.WEIGHTS = model_path
+
+    print('working with path: ', model_path)
     cfg.INPUT.FORMAT = 'BGR'
 
-    return DefaultPredictor(cfg)                                
+    predictor = DefaultPredictor(cfg)                                
+    model = build_model(cfg)
+
+    checkpointer = DetectionCheckpointer(model)
+    checkpointer.load(model_path)
+
+    return predictor, model
 
 
-def eval_predictor(imgs, model_path=None, frcnn=True, threshold=0.1):
+def eval_predictor(imgs, model_path=None, threshold=0.1):
     '''
-    Exhibits performance of model on some images
-    (Also expects images to have width and height of 256 pixels)
+    Method to check performance of model on some imgs (only chekc via plotting, does 
+    not return precision scores)
 
     Parameters
     ----------
-    imgs : list of height x width np.array
-        list of images. On all images inference will be performed
+    imgs : list of np.array 
+        images on which inference will run
     model_path : str
-        path to model weights
-    frcnn : bool
-        loads frcnn if true, else retinanet
+        path to model .pth file
     threshold : float
-        detection threshold set in the network
+        cutoff for what is considered as an instance
     
-    Returns 
-    -----------
+    Returns
+    ----------
     -
 
     '''
 
-    predictor = build_predictor(threshold=threshold, frcnn=frcnn, model_path=model_path)
+    print('Evaluating model stored under:')
+    print(model_path)
+
+    predictor, model = build_predictor_model(threshold=threshold, model_path=model_path)
+    model.eval()
 
     for img in imgs:
 
         out = predictor(img)
+        # out = predictor(img[:,:,::-1])
         v = Visualizer(img, MetadataCatalog.get('duke'), scale=1.5)
         out = v.draw_instance_predictions(out["instances"].to("cpu"))
         cv2_imshow(out.get_image())
@@ -137,8 +146,19 @@ def eval_predictor(imgs, model_path=None, frcnn=True, threshold=0.1):
             img = torch.as_tensor(img.astype('float32').transpose(2, 0, 1))
             x = [{'image': img, 'width': 256, 'height': 256}]
             pred = predictor.model(x)
-            print(f"Prediction: {pred}")
-
+            print(pred)
 
 if __name__ == '__main__':
-    pass
+    
+    duke_img_dir = '/content/drive/MyDrive/PyPSA_Africa_images/datasets/duke_val/data/'
+    duke_imgs = get_true_images(duke_img_dir, 20)
+    
+    model_path = '/content/drive/MyDrive/PyPSA_Africa_images/notebooks/pypsa-africa/PISA_models_duke/model_final.pth'
+    model_path_cycle = '/content/drive/MyDrive/PyPSA_Africa_images/PISA_models/11_01_2022_fake_maxar_train/model_final.pth'
+    
+    print('The cycle GAN trained model')
+    eval_predictor(duke_imgs, model_path=model_path_cycle)
+    
+    print('The regular trained model')
+    eval_predictor(duke_imgs, model_path=model_path)
+    
