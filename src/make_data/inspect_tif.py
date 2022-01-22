@@ -2,7 +2,9 @@ import gdal
 import folium
 from shapely.geometry import Polygon
 import geopandas as gpd
+import os
 
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # move up to root directory
 
 def inspect_tif(filename):
     """
@@ -16,6 +18,11 @@ def inspect_tif(filename):
     """
     
     ds = gdal.Open(filename)
+    info = gdal.Info(filename, format="json")
+    print(info)
+    rpcs = ds.GetMetadata('RPC')
+    print(rpcs)
+    print("RPCS are '{}'...\n".format(rpcs))
         
     print("Metadata of '{}'...\n".format(filename))
     
@@ -54,4 +61,4 @@ def inspect_tif(filename):
 
 
 if __name__ == "__main__":
-    inspect_tif("images/sierra_leone_001.tif")
+    inspect_tif(os.path.join(os.getcwd(), "image_download", "images", "105001001C94D700.tif"))
