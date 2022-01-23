@@ -17,6 +17,8 @@ As the repository joins a broad range of methods, the tools are clustered into t
 3. src/infer: Tools to check performance or conduct inference on whole .tif files
 4. src/utils: Helper-functions used across the other directories
 
+Additionally, some useful workflows are provided in the __notebooks__ directory.
+
 ### Installation
 
 Many of the methods require quite intricate environments and some even can only be executed when supported by high-performance GPUs. Therefore, we have stored dependencies for each directory separately, feel free to take a look at the directory you are interested in.
