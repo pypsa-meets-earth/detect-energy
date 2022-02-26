@@ -115,9 +115,9 @@ def do_train(train_dataset='duke'):
     cfg.DATASETS.TRAIN = (train_dataset+'_train')
     cfg.DATASETS.TEST1 = (train_dataset+'_val')
     cfg.DATASETS.TEST2 = ('manual_maxar_val')
-    cfg.TEST.INTERVAL = 10_000
-    cfg.SOLVER.MAX_ITER = 2_000_000
-    cfg.SOLVER.STEPS = (500_000, 1_000_000, 1_500_000)
+    cfg.TEST.INTERVAL = 20_000
+    cfg.SOLVER.MAX_ITER = 800_000
+    cfg.SOLVER.STEPS = (300_000, 600_000)
 
     model_name = "PISA_" + str(date.today()) + '_' + train_dataset
     cfg.OUTPUT_DIR = '../models/' + model_name
