@@ -32,7 +32,7 @@ os.chdir(os.path.join(os.getcwd(), '..', 'datasets'))
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
-for d, ds in product(["train", "val"], ['fake_maxar' 'duke']):
+for d, ds in product(["train", "val"], ['fake_maxar', 'duke']):
     ds_path = os.path.join(os.getcwd(), f'{ds}_{d}', 'data')
     json_path = os.path.join(os.getcwd(), f'{ds}_{d}', 'labels.json')
     ds_name = f'{ds}_{d}'
