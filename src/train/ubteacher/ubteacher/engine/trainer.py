@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import os
+import json
 import time
 import logging
 import torch
@@ -14,19 +15,23 @@ from detectron2.engine import DefaultTrainer, SimpleTrainer, TrainerBase
 from detectron2.engine.train_loop import AMPTrainer
 from detectron2.utils.events import EventStorage
 from detectron2.evaluation import COCOEvaluator, verify_results, PascalVOCDetectionEvaluator, DatasetEvaluators
+from detectron2.evaluation import inference_on_dataset
 from detectron2.data.dataset_mapper import DatasetMapper
 from detectron2.engine import hooks
 from detectron2.structures.boxes import Boxes
 from detectron2.structures.instances import Instances
 from detectron2.utils.env import TORCH_VERSION
 from detectron2.data import MetadataCatalog
+from detectron2.data import DatasetCatalog
 
 from ubteacher.data.build import (
     build_detection_semisup_train_loader,
     build_detection_test_loader,
     build_detection_semisup_train_loader_two_crops,
+    build_pypsa_loader_semisup_two_crops
 )
 from ubteacher.data.dataset_mapper import DatasetMapperTwoCropSeparate
+from ubteacher.data.dataset_mapper import PypsaDatasetMapper
 from ubteacher.engine.hooks import LossEvalHook
 from ubteacher.modeling.meta_arch.ts_ensemble import EnsembleTSModel
 from ubteacher.checkpoint.detection_checkpoint import DetectionTSCheckpointer
@@ -34,6 +39,353 @@ from ubteacher.solver.build import build_lr_scheduler
 
 
 
+class MaxarUBTeacher(DefaultTrainer):
+    '''
+    Unbiased teacher adapted to the transfer of training performance from 
+    duke to maxar images
+
+    This currently completely omits the BURN-IN stage and presumes it a 
+    as already complete
+    '''
+
+    def __init__(self, cfg):
+        cfg = DefaultTrainer.auto_scale_workers(cfg, comm.get_world_size())
+
+        model = self.build_model(cfg)
+        self.model_teacher = self.build_model(cfg)
+
+        data_loader = self.build_train_loader(cfg)
+        optimizer = self.build_optimizer(cfg, model)
+
+        if comm.get_world_size() > 1:
+            model = DistributedDataParallel(
+                model, device_ids=[comm.get_local_rank()], broadcast_buffers=False
+            )
+
+        TrainerBase.__init__(self)
+        self._trainer = SimpleTrainer(model, data_loader, optimizer)
+
+        ensem_ts_model = EnsembleTSModel(self.model_teacher, model)
+
+        self.scheduler = self.build_lr_scheduler(cfg, optimizer)
+        self.checkpointer = DetectionCheckpointer(
+            ensem_ts_model,
+            cfg.OUTPUT_DIR,
+            optimizer=optimizer,
+            scheduler=self.scheduler,
+        )
+        self.start_iter = 0
+        self.max_iter = cfg.SOLVER.MAX_ITER
+        self.cfg = cfg
+        
+        print(f'Building test loader from maxar imagery: {cfg.DATASETS.TEST2}')
+        self.test_loader = build_detection_test_loader(
+                                DatasetCatalog.get(cfg.DATASETS.TEST2),
+                                mapper=DatasetMapper(cfg, is_train=False)
+        )
+        self.evaluator = COCOEvaluator(cfg.DATASETS.TEST2)
+        self.evaluator._tasks = ['bbox']
+
+        self.register_hooks(self.build_hooks())
+        print('setup ub teacher complete!')
+
+    # =====================================================
+    # ================== Pseduo-labeling ==================
+    # =====================================================
+
+    def threshold_bbox(self, proposal_bbox_inst, thres=0.7, proposal_type="roih"):
+        if proposal_type == "rpn":
+            valid_map = proposal_bbox_inst.objectness_logits > thres
+
+            # create instances containing boxes and gt_classes
+            image_shape = proposal_bbox_inst.image_size
+            new_proposal_inst = Instances(image_shape)
+
+            # create box
+            new_bbox_loc = proposal_bbox_inst.proposal_boxes.tensor[valid_map, :]
+            new_boxes = Boxes(new_bbox_loc)
+
+            # add boxes to instances
+            new_proposal_inst.gt_boxes = new_boxes
+            new_proposal_inst.objectness_logits = proposal_bbox_inst.objectness_logits[
+                valid_map
+            ]
+        elif proposal_type == "roih":
+            valid_map = proposal_bbox_inst.scores > thres
+
+            # create instances containing boxes and gt_classes
+            image_shape = proposal_bbox_inst.image_size
+            new_proposal_inst = Instances(image_shape)
+
+            # create box
+            new_bbox_loc = proposal_bbox_inst.pred_boxes.tensor[valid_map, :]
+            new_boxes = Boxes(new_bbox_loc)
+
+            # add boxes to instances
+            new_proposal_inst.gt_boxes = new_boxes
+            new_proposal_inst.gt_classes = proposal_bbox_inst.pred_classes[valid_map]
+            new_proposal_inst.scores = proposal_bbox_inst.scores[valid_map]
+
+        return new_proposal_inst
+
+    def process_pseudo_label(
+        self, proposals_rpn_unsup_k, cur_threshold, proposal_type, psedo_label_method=""
+    ):
+        list_instances = []
+        num_proposal_output = 0.0
+        for proposal_bbox_inst in proposals_rpn_unsup_k:
+            # thresholding
+            if psedo_label_method == "thresholding":
+                proposal_bbox_inst = self.threshold_bbox(
+                    proposal_bbox_inst, thres=cur_threshold, proposal_type=proposal_type
+                )
+            else:
+                raise ValueError("Unkown pseudo label boxes methods")
+            num_proposal_output += len(proposal_bbox_inst)
+            list_instances.append(proposal_bbox_inst)
+        num_proposal_output = num_proposal_output / len(proposals_rpn_unsup_k)
+        return list_instances, num_proposal_output
+
+    def remove_label(self, label_data):
+        for label_datum in label_data:
+            if "instances" in label_datum.keys():
+                del label_datum["instances"]
+        return label_data
+
+    def add_label(self, unlabled_data, label):
+        for unlabel_datum, lab_inst in zip(unlabled_data, label):
+            unlabel_datum["instances"] = lab_inst
+        return unlabled_data
+
+    # =====================================================
+    # =================== Training Flow ===================
+    # =====================================================
+    
+    def train(self):
+        self.train_loop(self.start_iter, self.max_iter)
+        if hasattr(self, "_last_eval_results") and comm.is_main_process():
+            verify_results(self.cfg, self._last_eval_results)
+            return self._last_eval_results
+
+
+    def train_loop(self, start_iter: int, max_iter: int):
+        logger = logging.getLogger(__name__)
+        logger.info('Starting from iteration {}'.format(start_iter))
+
+        self.iter = self.start_iter = start_iter
+        self.max_iter = max_iter
+
+        with EventStorage(start_iter) as self.storage:
+            try:
+                self.before_train()
+
+                for self.iter in range(start_iter, max_iter):
+
+                    self.before_step()
+                    self.run_step_full_semisup()
+                    self.after_step()
+
+            except Exception:
+                logger.exception("Exception during training:")
+                raise
+            finally:
+                self.after_train()
+
+
+    def after_step(self):
+        # tests of manually labelled maxar data every cfg.TEST.INTERVAL iterations
+
+        if self.cfg.TEST.INTERVAL % (self.iter+1) == 0:
+
+            teacher_eval = inference_on_dataset(self.model_teacher, 
+                                                self.test_loader, 
+                                                self.evaluator)
+            student_eval = inference_on_dataset(self.model, 
+                                                self.test_loader, 
+                                                self.evaluator)
+            teacher_out = os.path.join(self.cfg.OUTPUT_DIR,
+                         'teacher_iter_' + str(self.iter) + '_on_' + 
+                         self.cfg.DATASETS.TRAIN2 + '.json')
+            student_out = os.path.join(self.cfg.OUTPUT_DIR,
+                          'student_iter_' + str(self.iter) + '_on_' + 
+                         self.cfg.DATASETS.TRAIN2 + '.json')
+            with open(teacher_out, 'w') as outfile:
+                json.dump(teacher_eval, outfile)
+            with open(student_out, 'w') as outfile:
+                json.dump(student_eval, outfile)
+
+
+    def after_train(self):
+        print('Training has concluded')
+        
+
+    @torch.no_grad()
+    def _update_teacher_model(self, keep_rate=0.996):
+        if comm.get_world_size() > 1:
+            student_model_dict = {
+                key[7:]: value for key, value in self.model.state_dict().items()
+            }
+        else:
+            student_model_dict = self.model.state_dict()
+
+        new_teacher_dict = OrderedDict()
+        for key, value in self.model_teacher.state_dict().items():
+            if key in student_model_dict.keys():
+                new_teacher_dict[key] = (
+                    student_model_dict[key] *
+                    (1 - keep_rate) + value * keep_rate
+                )
+            else:
+                raise Exception("{} is not found in student model".format(key))
+
+        self.model_teacher.load_state_dict(new_teacher_dict)
+
+    def _write_metrics(self, metrics_dict: dict):
+        metrics_dict = {
+            k: v.detach().cpu().item() if isinstance(v, torch.Tensor) else float(v)
+            for k, v in metrics_dict.items()
+        }
+
+        # gather metrics among all workers for logging
+        # This assumes we do DDP-style training, which is currently the only
+        # supported method in detectron2.
+        all_metrics_dict = comm.gather(metrics_dict)
+        # all_hg_dict = comm.gather(hg_dict)
+
+        if comm.is_main_process():
+            if "data_time" in all_metrics_dict[0]:
+                # data_time among workers can have high variance. The actual latency
+                # caused by data_time is the maximum among workers.
+                data_time = np.max([x.pop("data_time")
+                                   for x in all_metrics_dict])
+                self.storage.put_scalar("data_time", data_time)
+
+            # average the rest metrics
+            metrics_dict = {
+                k: np.mean([x[k] for x in all_metrics_dict])
+                for k in all_metrics_dict[0].keys()
+            }
+
+            # append the list
+            loss_dict = {}
+            for key in metrics_dict.keys():
+                if key[:4] == "loss":
+                    loss_dict[key] = metrics_dict[key]
+
+            total_losses_reduced = sum(loss for loss in loss_dict.values())
+
+            self.storage.put_scalar("total_loss", total_losses_reduced)
+            if len(metrics_dict) > 1:
+                self.storage.put_scalars(**metrics_dict)
+
+
+    def run_step_full_semisup(self):
+        self._trainer.iter = self.iter
+        assert self.model.training, 'self.model was changed to eval mode!'
+
+        start = time.perf_counter()
+        data = next(self._trainer._data_loader_iter)
+        label_data_q, label_data_k, unlabel_data_q, unlabel_data_k = data
+        data_time = time.perf_counter() - start
+
+        # remove unlabeled data labels
+        unlabel_data_q = self.remove_label(unlabel_data_q)
+        unlabel_data_k = self.remove_label(unlabel_data_k)
+
+        if self.iter % self.cfg.SEMISUPNET.TEACHER_UPDATE_ITER == 0:
+            self._update_teacher_model(keep_rate=self.cfg.SEMISUPNET.EMA_KEEP_RATE) 
+
+        record_dict = {}
+
+        with torch.no_grad():
+            (
+            _,
+            proposals_rpn_unsup_k,
+            proposals_roih_unsup_k,
+            _,
+            ) = self.model_teacher(unlabel_data_k, branch="unsup_data_weak")
+
+        cur_threshold = self.cfg.SEMISUPNET.BBOX_THRESHOLD
+
+        joint_proposal_dict = {}
+        joint_proposal_dict['proposals_rpn'] = proposals_rpn_unsup_k
+
+        (
+            pesudo_proposals_rpn_unsup_k,
+            nun_pseudo_bbox_rpn,
+        ) = self.process_pseudo_label(
+            proposals_rpn_unsup_k, cur_threshold, "rpn", "thresholding"
+        )
+
+        joint_proposal_dict["proposals_pseudo_rpn"] = pesudo_proposals_rpn_unsup_k
+        # Pseudo_labeling for ROI head (bbox location/objectness)
+        pesudo_proposals_roih_unsup_k, _ = self.process_pseudo_label(
+            proposals_roih_unsup_k, cur_threshold, "roih", "thresholding"
+        )
+        joint_proposal_dict["proposals_pseudo_roih"] = pesudo_proposals_roih_unsup_k   
+
+
+        unlabel_data_q = self.add_label(
+            unlabel_data_q, joint_proposal_dict["proposals_pseudo_roih"]
+        )
+        unlabel_data_k = self.add_label(
+            unlabel_data_k, joint_proposal_dict["proposals_pseudo_roih"]
+        )
+
+        all_label_data = label_data_q + label_data_k
+        global all_unlabel_data
+        all_unlabel_data = unlabel_data_q
+
+        # all_label_data = change_classes(all_label_data)
+        # all_unlabel_data = change_classes(all_unlabel_data)
+        # all_unlabel_data = filter_instances(all_unlabel_data)
+        
+        record_all_label_data, _, _, _ = self.model(all_label_data, branch='supervised')
+
+        record_dict.update(record_all_label_data)
+
+        record_all_unlabel_data, _, _, _ = self.model(
+            all_unlabel_data, branch="supervised"
+        )
+        new_record_all_unlabel_data = {}
+        for key in record_all_unlabel_data.keys():
+            new_record_all_unlabel_data[key + "_pseudo"] = record_all_unlabel_data[
+                key
+            ]
+        record_dict.update(new_record_all_unlabel_data)
+
+        # weight losses
+        loss_dict = {}
+        for key in record_dict.keys():
+            if key[:4] == "loss":
+                if key == "loss_rpn_loc_pseudo" or key == "loss_box_reg_pseudo":
+                    # pseudo bbox regression <- 0
+                    loss_dict[key] = record_dict[key] * 0
+                elif key[-6:] == "pseudo":  # unsupervised loss
+                    loss_dict[key] = (
+                        record_dict[key] *
+                        self.cfg.SEMISUPNET.UNSUP_LOSS_WEIGHT
+                    )
+                else:  # supervised loss
+                    loss_dict[key] = record_dict[key] * 1
+
+        losses = sum(loss_dict.values())
+
+        metrics_dict = record_dict
+        metrics_dict["data_time"] = data_time
+        self._write_metrics(metrics_dict)
+
+        self.optimizer.zero_grad()
+        losses.backward()
+
+        self.optimizer.step()
+
+   
+    @classmethod
+    def build_train_loader(cls, cfg):
+        mapper = PypsaDatasetMapper(cfg, True)
+        # return build_detection_semisup_train_loader(cfg, mapper=None)
+        return build_pypsa_loader_semisup_two_crops(cfg, mapper)
 
 
 
@@ -46,6 +398,10 @@ from ubteacher.solver.build import build_lr_scheduler
 
 
 
+
+
+
+'''
 # Supervised-only Trainer
 class BaselineTrainer(DefaultTrainer):
     def __init__(self, cfg):
@@ -730,3 +1086,4 @@ class UBTeacherTrainer(DefaultTrainer):
             # run writers in the end, so that evaluation metrics are written
             ret.append(hooks.PeriodicWriter(self.build_writers(), period=20))
         return ret
+'''

@@ -12,11 +12,11 @@ from scipy.special import expit
 plt.style.use('bmh')
 
 
-def change_classes(data):
+def change_classes(data, to=1):
     for i, datum in enumerate(data):
         # print(datum['instances'])
         classes = getattr(datum['instances'], 'gt_classes')
-        setattr(datum['instances'], 'gt_classes', torch.ones_like(classes, dtype=int))
+        setattr(datum['instances'], 'gt_classes', to * torch.ones_like(classes, dtype=int))
         data[i] = datum
     
     return data

@@ -29,6 +29,51 @@ from ubteacher.data.common import (
 """
 This file contains the default logic to build a dataloader for training or testing.
 """
+def build_pypsa_loader_semisup_two_crops(cfg, mapper=None):
+    '''
+    Sets up loader for custom maxar data
+    '''
+    unlabel_dicts = get_detection_dataset_dicts(
+                            cfg.DATASETS.TEST2,
+                            filter_empty=False,
+                            min_keypoints=0,
+                            proposal_files=None
+                        )
+
+    label_dicts = get_detection_dataset_dicts(
+                            cfg.DATASETS.TRAIN,
+                            filter_empty=False,
+                            min_keypoints=0,
+                            proposal_files=None
+                        )
+ 
+     
+    label_dataset = DatasetFromList(label_dicts, copy=False)
+    unlabel_dataset = DatasetFromList(unlabel_dicts, copy=False)
+
+    if mapper is None:
+        mapper = DatasetMapper(cfg, True)
+    label_dataset = MapDataset(label_dataset, mapper)
+    unlabel_dataset = MapDataset(unlabel_dataset, mapper)
+
+    sampler_name = cfg.DATALOADER.SAMPLER_TRAIN
+    logger = logging.getLogger(__name__)
+    logger.info("Using training sampler {}".format(sampler_name))
+    if sampler_name == "TrainingSampler":
+        label_sampler = TrainingSampler(len(label_dataset))
+        unlabel_sampler = TrainingSampler(len(unlabel_dataset))
+    elif sampler_name == "RepeatFactorTrainingSampler":
+        raise NotImplementedError("{} not yet supported.".format(sampler_name))
+    else:
+        raise ValueError("Unknown training sampler: {}".format(sampler_name))
+    return build_semisup_batch_data_loader_two_crop(
+        (label_dataset, unlabel_dataset),
+        (label_sampler, unlabel_sampler),
+        cfg.SOLVER.IMG_PER_BATCH_LABEL,
+        cfg.SOLVER.IMG_PER_BATCH_UNLABEL,
+        aspect_ratio_grouping=cfg.DATALOADER.ASPECT_RATIO_GROUPING,
+        num_workers=cfg.DATALOADER.NUM_WORKERS,
+    )
 
 
 def divide_label_unlabel(
