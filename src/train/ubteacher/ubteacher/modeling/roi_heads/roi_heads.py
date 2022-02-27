@@ -12,11 +12,12 @@ from detectron2.modeling.roi_heads import (
     ROI_HEADS_REGISTRY,
     StandardROIHeads,
 )
+from detectron2.modeling.poolers import ROIPooler
 from detectron2.modeling.roi_heads.fast_rcnn import FastRCNNOutputLayers
+
 from ubteacher.modeling.roi_heads.fast_rcnn import FastRCNNFocaltLossOutputLayers
 
 import numpy as np
-from detectron2.modeling.poolers import ROIPooler
 
 
 @ROI_HEADS_REGISTRY.register()
