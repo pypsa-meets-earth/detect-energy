@@ -39,7 +39,7 @@ from ubteacher.solver.build import build_lr_scheduler
 
 
 
-class MaxarUBTeacher(DefaultTrainer):
+class PypsaUBTeacher(DefaultTrainer):
     '''
     Unbiased teacher adapted to the transfer of training performance from 
     duke to maxar images
@@ -195,7 +195,7 @@ class MaxarUBTeacher(DefaultTrainer):
     def after_step(self):
         # tests of manually labelled maxar data every cfg.TEST.INTERVAL iterations
 
-        if self.cfg.TEST.INTERVAL % (self.iter+1) == 0:
+        if self.cfg.TEST.EVAL_PERIOD % (self.iter+1) == 0:
 
             teacher_eval = inference_on_dataset(self.model_teacher, 
                                                 self.test_loader, 

@@ -1,7 +1,8 @@
 _BASE_: "../Base-RCNN-FPN.yaml"
 MODEL:
   META_ARCHITECTURE: "PypsaGeneralizedRCNN"
-  WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  # WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  WEIGHTS: 'tbd'
   MASK_ON: False
   RESNETS:
     DEPTH: 50
@@ -11,8 +12,11 @@ MODEL:
     POSITIVE_FRACTION: 0.25
     LOSS: "CrossEntropy"
   ROI_HEADS:
-    NAME: "PyPsaROIHeads"
+    NAME: "PypsaROIHeads"
     LOSS: "CrossEntropy"
+    NUM_CLASSES: 2
+INPUT:
+  MIN_SIZE_TRAIN: [256, 512, 640, 672, 704, 736, 768, 800]
 SOLVER:
   LR_SCHEDULER_NAME: "WarmupMultiStepLR"
   STEPS: (179990, 179995)
@@ -23,15 +27,19 @@ SOLVER:
 DATALOADER:
   SUP_PERCENT: 2.0
   RANDOM_DATA_SEED: 1
+  ASPECT_RATIO_GROUPING: True
+  FILTER_EMPTY_ANNOTATIONS: False
 DATASETS:
   CROSS_DATASET: False
-  TRAIN: ("coco_2017_train",)
-  TEST: ("coco_2017_val",)
+  TRAIN: ("duke_train",)
+  TEST1: ("duke_test",)
+  TEST2: ("manual_maxar_val",)
+  NUM_CLASSES: 2
 SEMISUPNET:
   Trainer: "ubteacher"
   BBOX_THRESHOLD: 0.7
   TEACHER_UPDATE_ITER: 1
-  BURN_UP_STEP: 2000
+  BURN_UP_STEP: 0
   EMA_KEEP_RATE: 0.9996
   UNSUP_LOSS_WEIGHT: 4.0
 TEST:
