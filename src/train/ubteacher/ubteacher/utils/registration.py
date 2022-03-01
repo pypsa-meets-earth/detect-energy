@@ -27,7 +27,6 @@ def register_all():
         register_coco_instances(ds_name, {}, json_path, ds_path)
 
     ds_name = 'manual_maxar_val'
-    ds_name = f'{name}_{mode}'
     json_path = os.path.join(DATASETS_PATH, f'{ds_name}/labels.json')
     ds_path = os.path.join(DATASETS_PATH, f'{ds_name}/data/')
 
