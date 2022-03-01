@@ -6,8 +6,17 @@ from ubteacher.data.transforms.augmentation_impl import (
 )
 
 
-
-def build_strong_pypsa_augmentation(cfg, is_train):
+def build_strong_pypsa_augmentation(cfg, is_train,
+                jitter_brightness=0.4,        
+                jitter_contrast=0.4,        
+                jitter_saturation=0.4,        
+                jitter_hue=0.4,        
+                jitter_p=0.8,
+                greyscale_p=0.2,
+                blur_mean=0.1,
+                blur_var=2.0,
+                blur_p=0.5,
+                    ):
 
     logger = logging.getLogger(__name__)
     augmentation = []
@@ -15,10 +24,15 @@ def build_strong_pypsa_augmentation(cfg, is_train):
     if is_train:
         # This is simialr to SimCLR https://arxiv.org/abs/2002.05709 (except the cropping)
         augmentation.append(
-            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8)
+            transforms.RandomApply([transforms.ColorJitter(
+                                            jitter_brightness,
+                                            jitter_contrast,
+                                            jitter_saturation,
+                                            jitter_hue, 
+                                    )], p=jitter_p)
         )
-        augmentation.append(transforms.RandomGrayscale(p=0.2))
-        augmentation.append(transforms.RandomApply([GaussianBlur([0.1, 2.0])], p=0.5))
+        augmentation.append(transforms.RandomGrayscale(p=greyscale_p))
+        augmentation.append(transforms.RandomApply([GaussianBlur([blur_mean, blur_var])], p=blur_p))
 
         other_transform = transforms.Compose(
             [
