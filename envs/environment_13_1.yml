@@ -15,6 +15,9 @@ dependencies:
 - ipykernel
 - googledrivedownloader
 - numpy
+- scikit-learn
+- attrdict
+- python-dotenv
 
 # cuda and pytorch
 - cudatoolkit==11.3.1
