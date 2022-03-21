@@ -6,6 +6,8 @@ load_dotenv(find_dotenv())
 import sys
 sys.path.append(os.environ.get('PROJECT_ROOT'))
 data_path = os.environ.get('PROJECT_DATASETS')
+model_out_path = ...
+
 
 from itertools import product
 import json
@@ -125,7 +127,7 @@ def run_parameters(params):
                    IMSPERBATCH_{cfg.SOLVER.IMS_PER_BATCH} \
                    MOM_{cfg.SOLVER.MOMENTUM} \
                    WEIGHTDECAY_{cfg.SOLVER.WEIGHT_DECAY}"
-    cfg.OUTPUT_DIR = '/content/drive/MyDrive/PyPSA_Africa_images/models/' + model_name
+    cfg.OUTPUT_DIR = os.path.join(model_out_path, model_name)
 
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
     trainer = TuneTrainer(cfg) 
