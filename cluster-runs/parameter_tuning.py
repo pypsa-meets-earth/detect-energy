@@ -153,7 +153,7 @@ def run_parameters(params):
 if __name__ == '__main__':
 
     parameters = {
-        'model_type': ['faster_rcnn_R_101_FPN_3x.yaml'],
+        'model_type': ['faster_rcnn_R_101_FPN_3x.yaml', 'retinanet_R_50_FPN_1x.yaml'],
         'SOLVER.BASE_LR': [1e-3],           # default
         'SOLVER.MOMENTUM': [0.9],           # default
         'SOLVER.IMS_PER_BATCH': [16],       # default
