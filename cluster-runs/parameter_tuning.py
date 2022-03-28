@@ -111,30 +111,35 @@ def run_parameters(params):
 
     # From Detectron2 Model Zoo
     cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/" + params.model_type))
+    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/" + params.model_type)
 
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
+    cfg.MODEL.RETINANET.NUM_CLASSES = 1
 
     cfg.DATASETS.TRAIN = 'duke_512_train'
     cfg.DATASETS.TEST = ['manual_maxar_val']
     cfg.DATASETS.EVAL = ['manual_maxar_val', 'duke_512_val', 'duke_512_train']
 
     cfg.TEST.INTERVAL = 5_000
-    cfg.SOLVER.MAX_ITER = 100_000
-    cfg.SOLVER.STEPS = (70_000, 85_000)
+    cfg.SOLVER.MAX_ITER = 50_000
+    cfg.SOLVER.STEPS = (40_000, 45_000)
 
     # setup current parameters
     cfg.SOLVER.IMS_PER_BATCH = params['SOLVER.IMS_PER_BATCH']
     cfg.SOLVER.BASE_LR = params['SOLVER.BASE_LR']
     cfg.SOLVER.MOMENTUM = params['SOLVER.MOMENTUM']
     cfg.SOLVER.WEIGHT_DECAY = params['SOLVER.WEIGHT_DECAY']
+    cfg.MODEL.ANCHOR_GENERATOR.SIZES = params['MODEL.ANCHOR_GENERATOR.SIZES']
 
     select_model = params.model_type.split(".")[0]
 
     model_name = f"MODEL_{select_model}_"
-    model_name +=f"LR_{cfg.SOLVER.BASE_LR}_"
-    model_name +=f"IMSPERBATCH_{cfg.SOLVER.IMS_PER_BATCH}_"
-    model_name +=f"MOM_{cfg.SOLVER.MOMENTUM}_"
-    model_name +=f"WEIGHTDECAY_{cfg.SOLVER.WEIGHT_DECAY}"
+    # model_name +=f"LR_{cfg.SOLVER.BASE_LR}_"
+    # model_name +=f"IMSPERBATCH_{cfg.SOLVER.IMS_PER_BATCH}_"
+    # model_name +=f"MOM_{cfg.SOLVER.MOMENTUM}_"
+    # model_name +=f"WEIGHTDECAY_{cfg.SOLVER.WEIGHT_DECAY}"
+    model_name +=f"ANCHORS"+ \
+                str(cfg.MODEL.ANCHOR_GENERATOR.SIZES).replace('[[', '_').replace(']]', '_').replace(',', '_').replace(' ', '')
 
     cfg.OUTPUT_DIR = os.path.join(model_out_path, model_name)
 
@@ -148,11 +153,12 @@ def run_parameters(params):
 if __name__ == '__main__':
 
     parameters = {
-        'model_type': ['faster_rcnn_R_50_FPN_3x.yaml', 'faster_rcnn_R_101_FPN_3x.yaml'],
-        'SOLVER.BASE_LR': [1e-4, 1e-3, 1e-2],
+        'model_type': ['faster_rcnn_R_101_FPN_3x.yaml'],
+        'SOLVER.BASE_LR': [1e-3],           # default
         'SOLVER.MOMENTUM': [0.9],           # default
         'SOLVER.IMS_PER_BATCH': [16],       # default
         'SOLVER.WEIGHT_DECAY': [0.0001],    # default
+        'MODEL.ANCHOR_GENERATOR.SIZES': [[16, 32, 64, 128, 256]],
         }
 
     parameter_sweep = list(ParameterGrid(parameters))
