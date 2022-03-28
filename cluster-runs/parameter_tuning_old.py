@@ -128,14 +128,10 @@ def run_parameters(params):
     cfg.SOLVER.MOMENTUM = params['SOLVER.MOMENTUM']
     cfg.SOLVER.WEIGHT_DECAY = params['SOLVER.WEIGHT_DECAY']
 
-    select_model = params.model_type.split(".")[0]
-
-    model_name = f"MODEL_{select_model}_"
-    model_name +=f"LR_{cfg.SOLVER.BASE_LR}_"
-    model_name +=f"IMSPERBATCH_{cfg.SOLVER.IMS_PER_BATCH}_"
-    model_name +=f"MOM_{cfg.SOLVER.MOMENTUM}_"
-    model_name +=f"WEIGHTDECAY_{cfg.SOLVER.WEIGHT_DECAY}"
-
+    model_name = f"LR_{cfg.SOLVER.BASE_LR}_ \
+                   IMSPERBATCH_{cfg.SOLVER.IMS_PER_BATCH} \
+                   MOM_{cfg.SOLVER.MOMENTUM} \
+                   WEIGHTDECAY_{cfg.SOLVER.WEIGHT_DECAY}"
     cfg.OUTPUT_DIR = os.path.join(model_out_path, model_name)
 
     os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
