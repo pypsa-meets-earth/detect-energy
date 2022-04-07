@@ -24,8 +24,8 @@ def setup_detectron(root=''):
     fake_maxar_val_id = '1WtQvQDm_KUCJ1c1QgU7gJA3bjnFqTztf'
     manual_maxar_val_id = '1-52lUr-T5AA2iMMakumgijaZ6i7Sf5Ns'
 
-    duke_512_train_id = '1-0J20iRnTC5QBzM74x-g7TMjJIVCr3SR'
-    duke_512_val_id = '1QzahJo2i8y24ZyVOVz7tSPfuijABAyu6'
+    duke_512_train_id = '1W3JptxEo9AK3YiY8mX47PmYMeEmNzn6Z'
+    duke_512_val_id = '1QtaShvrrY9LM3YJa8K2wt0ZAUkNRR9U0'
 
     model_id = '1-8VQMy0lI4QKW8hxOKzPv10TPoslC1kc'
 
