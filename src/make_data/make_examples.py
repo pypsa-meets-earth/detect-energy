@@ -1,4 +1,3 @@
-#%%
 from PIL import Image
 from osgeo import osr, gdal
 import numpy as np
@@ -8,6 +7,7 @@ import geopandas as gpd
 import folium
 import os
 import rtree
+import matplotlib.pyplot as plt
 # import pygeos
 
 # os.chdir(os.path.dirname(os.path.abspath(__file__)))  # move up to parent directory
@@ -18,17 +18,13 @@ def make_polygon_list(path, resume_file=None):
     Creates GeoDataFrame, checks the tif files in a desired dir 
     and adds their geometries (with respective file name) as row
     to GeoDataFrame
-
     -----------
     Arguments:
-
     path : (str)
         directory with tif files
-
     resume_file : (str or None)
         if None: initializes net GeoDataFrame
         otherwise loads (and resumes from) existing one
-
     """
 
     tif_files = []
@@ -47,7 +43,11 @@ def make_polygon_list(path, resume_file=None):
 
     # extract geometries of .tif files and add to geodataframe
     for file in tif_files:
-        info = gdal.Info(file, format="json")
+        try:
+            info = gdal.Info(file, format="json")
+        except SystemError:
+            print(f'Skipping raster {file}')
+            continue
         corners = info["cornerCoordinates"]
         poly = Polygon((
                     corners["upperLeft"],
@@ -60,8 +60,6 @@ def make_polygon_list(path, resume_file=None):
     coverage = coverage.set_crs(epsg=4326)
 
     return coverage
-
-
 
 #%%
 def make_examples(assets,
@@ -102,7 +100,6 @@ def make_examples(assets,
         seed value for numpy random generator
     examples_per_tower : (int)
         number of examples generated per tower
-
     ----------
     Returns:
     dataset : (GeoDataFrame)
@@ -157,7 +154,6 @@ def make_examples(assets,
 
         # iterate over assets in that image
         for row in assets[assets["filename"] == image].itertuples():
-        # for idx, row in assets[assets["filename"] == image].iterrows(): # itertuples is significantly faster
 
             # (default=1) generates multiple examples for every examples
             for j in range(examples_per_tower):
@@ -171,8 +167,8 @@ def make_examples(assets,
 
                 offset = np.zeros(2)
                 if random_offset is True:
-                    offset[0] = np.random.randint(-width//2 + 8, width//2 - 8)
-                    offset[1] = np.random.randint(-height//2 + 8, height//2 - 8)
+                    offset[0] = np.random.randint(-width//2 + 20, width//2 - 20)
+                    offset[1] = np.random.randint(-height//2 + 20, height//2 - 20)
 
                 pixels -= offset
                 x, y = int(pixels[0]), int(pixels[1])
@@ -187,10 +183,6 @@ def make_examples(assets,
                         new_img[:,:,i] = bands[i].ReadAsArray(x, y, width, height)
                 except:
                     continue
-
-                # transform array to image
-                img = Image.fromarray(new_img, 'RGB')
-                img.save(img_path + filename + ".png", quality=100)
 
                 # create Polygon of created image
                 img_corner = upper_left + pixels*pixel_size
@@ -209,6 +201,48 @@ def make_examples(assets,
                         ul[0] + bbox_width // 2,
                         ul[1] + bbox_height // 2
                 ]
+
+                # _, ax = plt.subplots(1, 1, figsize=(8, 8))
+                # ax.imshow(new_img)
+                # ax.scatter([bbox[0], bbox[2]], [bbox[1], bbox[3]], s=100, c='r')
+                # plt.show()
+
+                # do not include images that are contain blank spots
+                black_threshold = 10
+                binarr = np.where(new_img < black_threshold, 1, 0) #black_point is upper limit
+                # Find Total sum of 2D array thresh
+                total = sum(map(sum, binarr))
+                ratio = total/height/width
+
+                if (ratio > 0.5).sum() == 3:
+                    _, ax = plt.subplots(1, 1, figsize=(8, 8))
+                    print('filtered by black borders!')
+                    continue
+
+                # do not include images that contain clouds
+                white_point = 180
+                # Put threshold to make it binary
+                binarr = np.where(new_img>white_point, 1, 0) #white point is lower limit
+                # Find Total sum of 2D array thresh
+                total = sum(map(sum, binarr))
+                ratio = total/height/width
+                if (ratio > 0.45).sum() == 3:
+                    print('filtered by cloudy!')
+                    continue
+
+                # exclude images that are blurry 
+                blurr_threshold = 0.65
+                # _, s, _ = np.linalg.svd(new_img)        
+                _, s, _ = np.linalg.svd(new_img.sum(axis=2))        
+                sv_num = new_img.shape[0] // 50
+                ratio = s[:sv_num].sum() / s.sum()
+                if ratio > blurr_threshold and not 'australia' in image:
+                    print('filtered by blurry!')
+                    continue
+
+                # transform array to image
+                img = Image.fromarray(new_img, 'RGB')
+                img.save(img_path + filename + ".png", quality=100)
 
                 # geo_bbox = gpd.GeoSeries(p).set_crs("EPSG:4326").to_crs("EPSG:3857").buffer(30)
                 # geo_bbox = geo_bbox.to_crs("EPSG:4326")
@@ -246,15 +280,4 @@ def make_examples(assets,
                     # bounding_box.to_file(img_path + "tower_bbox.geojson", driver="GeoJSON")
                     return None
                 
-    dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")            
-
-
-#%%
-if __name__ == "__main__":
-    coverage = make_polygon_list(os.path.join(os.getcwd(), "images"))
-    # coverage = make_polygon_list("./")
-    # coverage.to_file("sierra_leone_coverage.json", driver="GeoJSON")
-    SL_RAW_TOWERS = os.path.join(os.path.dirname(os.getcwd()), "data", "SL_raw_towers.geojson")
-    make_examples(SL_RAW_TOWERS, coverage, img_path="/examples/", max_length=500, random_offset= False, seed=2021)
-    # make_examples("sierra-leone_raw_towers.geojson", coverage,
-    #                       max_length=500)
+    dataset.to_file(img_path + "tower_examples.geojson", driver="GeoJSON")   
