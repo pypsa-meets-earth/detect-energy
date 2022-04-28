@@ -26,6 +26,10 @@ def setup_detectron(root=''):
 
     duke_512_train_id = '1W3JptxEo9AK3YiY8mX47PmYMeEmNzn6Z'
     duke_512_val_id = '1QtaShvrrY9LM3YJa8K2wt0ZAUkNRR9U0'
+    
+    fake_australia_512_train_id = '1-0BJUVvkrjGzOkTdhRnygyp1G54AtCFU'
+    fake_australia_512_val_id = '1-3GifZ1wE98PSpDg9ft_yo9ffKyY-hCY'
+    australia_val_id = '1AQWAhwmgntPk9P046RD6Y6V66uXInTFY'
 
     model_id = '1-8VQMy0lI4QKW8hxOKzPv10TPoslC1kc'
 
@@ -59,7 +63,6 @@ def setup_detectron(root=''):
     gdd.download_file_from_google_drive(file_id=manual_maxar_val_id, 
                                         dest_path=dest_path, unzip=True)
     os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
-    '''
 
     gdd.download_file_from_google_drive(file_id=duke_512_train_id, 
                                         dest_path=dest_path, unzip=True)
@@ -68,7 +71,18 @@ def setup_detectron(root=''):
     gdd.download_file_from_google_drive(file_id=duke_512_val_id, 
                                         dest_path=dest_path, unzip=True)
     os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
+    '''
+    gdd.download_file_from_google_drive(file_id=fake_australia_512_train_id, 
+                                        dest_path=dest_path, unzip=True)
+    os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
 
+    gdd.download_file_from_google_drive(file_id=fake_australia_512_val_id, 
+                                        dest_path=dest_path, unzip=True)
+    os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
+
+    gdd.download_file_from_google_drive(file_id=australia_val_id, 
+                                        dest_path=dest_path, unzip=True)
+    os.remove(os.path.join(os.getcwd(), 'datasets', 'hold'))
     # download model
     '''
     gdd.download_file_from_google_drive(file_id=model_id, 
