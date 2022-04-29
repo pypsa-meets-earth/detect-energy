@@ -396,12 +396,12 @@ if __name__ == '__main__':
 
     parameters = {
         'model_type': ['faster_rcnn_R_101_FPN_3x.yaml'],
-        'INPUTS.STRONG_AUGMENT': [False, True],
-        'INPUTS.TRANSFER_PARAM': [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99],
+        'INPUTS.STRONG_AUGMENT': [False],
+        'INPUTS.TRANSFER_PARAM': [0., 0.2, 0.4, 0.6, 0.8, 0.99],
         'DATASETS.DATASETS_PATH': [DATASETS_PATH],
         'COUNTRY': [country],
-        'SOLVER.BASE_LR': [1e-3, 5e-4],           # default
-        'SOLVER.IMS_PER_BATCH': [8, 16],
+        'SOLVER.BASE_LR': [1e-3],           # default
+        'SOLVER.IMS_PER_BATCH': [8],
         'MODEL.ANCHOR_GENERATOR.SIZES': [[10, 20, 40, 80, 160], [16, 32, 64, 128, 256]],
         }
 
