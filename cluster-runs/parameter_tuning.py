@@ -1,14 +1,14 @@
 import os
 # os.chdir('/disk3/fioriti/git/detect_energy')
-from dotenv import find_dotenv, load_dotenv
-load_dotenv(find_dotenv())
+# from dotenv import find_dotenv, load_dotenv
+# load_dotenv(find_dotenv())
 
 # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
 # os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2"
 
 import sys
 # sys.path.append(os.environ.get('PROJECT_ROOT'))
-data_path = os.environ.get('PROJECT_DATASETS')
+# data_path = os.environ.get('PROJECT_DATASETS')
 model_out_path = "/disk3/fioriti/git/detect_energy/cluster-runs/models/PISA_Parameter_Tuning"
 
 
