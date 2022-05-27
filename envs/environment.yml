@@ -20,6 +20,7 @@ dependencies:
 - scikit-learn
 - attrdict
 - python-dotenv
+- zipfile
 
 # cuda and pytorch
 - cudatoolkit==11.3.1
