@@ -15,6 +15,7 @@ dependencies:
 - geopandas
 - ipykernel
 - googledrivedownloader
+- gdrive
 - numpy
 - scikit-learn
 - attrdict
@@ -30,8 +31,8 @@ dependencies:
 - yaml
 
 # compilers (for detectron2)
-- gcc >= 5.4
-- gxx >= 5.4
+- gcc <= 10  # limit up to v10 because of detectron2
+- gxx <= 10  # limit up to v10 because of detectron2
 
 - pip # needed to install pip dependencies below
 - pip:
