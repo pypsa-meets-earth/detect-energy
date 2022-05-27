@@ -26,3 +26,13 @@ datasets:
     gdrive: "1-3GifZ1wE98PSpDg9ft_yo9ffKyY-hCY"
   australia_val_id:
     gdrive: "1AQWAhwmgntPk9P046RD6Y6V66uXInTFY"
+  maxar2duke_id:
+    gdrive: "1IIK2zEEK20iOPYnR_QmVromlhKSMEQVI"
+  duke2australia_id:
+    gdrive: "1RlsIoNBAoGVR22wSqQbz8pwK8t2FOsyL"
+  duke2bangladesh_id:
+    gdrive: "1Q_nJrQ6-6rmnVfUfhYeaFNunbsX72poE"
+  duke2drc_id:
+    gdrive: "1-0hVIvhPHbqJTMxUI5OYtAQuBMXW1P2q"
+  duke2ghana_id:
+    gdrive: "1-2gAgmi29sZ-9jNV-byK3I2VlI5bnEeH"
