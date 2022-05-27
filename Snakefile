@@ -48,7 +48,7 @@ rule cycle_train:
         training_dataset=directory("datasets/{general_dataset}"),
     run:
         shell("cd " + CYCLEGAN_FULL_PATH)
-        shell("python train.py --dataroot " + os.path.abspath(input["training_dataset"]) + "--name {general_dataset} --model cycle_gan")
+        shell("python train.py --dataroot " + os.path.abspath(input["training_dataset"]) + "--name " + wildcards["general_dataset"] + " --model cycle_gan")
 
 
 rule cycle_test:
@@ -57,4 +57,4 @@ rule cycle_test:
         training_dataset=directory("datasets/{general_dataset}"),
     run:
         shell("cd " + CYCLEGAN_FULL_PATH)
-        shell("python train.py --dataroot " + os.path.abspath(input["training_dataset"]) + "--name {general_dataset} --no_dropout --model cycle_gan --direction BtoA")
+        shell("python train.py --dataroot " + os.path.abspath(input["training_dataset"]) + "--name " + wildcards["general_dataset"] + " --no_dropout --model cycle_gan --direction BtoA")
