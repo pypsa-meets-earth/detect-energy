@@ -31,11 +31,13 @@ rule download_dataset_gdrive:
         Downloading {wildcards.preload_dataset}
         This implies that the users are accepting the data licencing by authors
         """
+    log: "logs/download_dataset_gdrive_{preload_dataset}.log"
     run:
         dataset_name = wildcards["preload_dataset"]
         shell(
             "gdrive download --path " + os.path.dirname(output[0])
             + " --force " + config["datasets"][dataset_name]["gdrive"]
+            + " > {log}"
         )
         # name of the file to unzip
         import zipfile
@@ -48,17 +50,21 @@ rule download_dataset_gdrive:
 rule cycle_train:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
-        training_dataset_A=directory("datasets/{general_dataset}"),
-        training_dataset_B=directory("datasets/{general_dataset}"),
-    output: directory("datasets/cycletrain{general_dataset}")
+        training_dataset=directory("datasets/{general_dataset}"),
+        checkpoints_dir="models/"
+    output: directory("models/cycletrain{general_dataset}"),
+    log: "logs/cycle_train_{general_dataset}.log"
     run:
         shell(
             "python {input.cyclegan_dir}/train.py"
             + " --dataroot " + os.path.abspath(input["training_dataset"])
             #+ " --results_dir {output}"
-            #+ " --name " + wildcards["general_dataset"]
+            + " --name " + wildcards["general_dataset"]
+            + " --checkpoints_dir {input.checkpoints_dir}"
+            + " --gpu_ids 0"
             + " --name {wildcards.general_dataset}"
             + " --model cycle_gan"
+            + " > {log}"
         )
 
 
@@ -66,12 +72,18 @@ rule cycle_test:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
         training_dataset=directory("datasets/{general_dataset}"),
+        checkpoints_dir="models/"
     output: directory("datasets/cycletest{general_dataset}")
+    log: "logs/cycle_test_{general_dataset}.log"
     run:
         shell(
             "python " + os.path.join(input["cyclegan_dir"], "train.py")
             + " --dataroot " + os.path.abspath(input["training_dataset"])
-            + " --results_dir {output}"
             + " --name {wildcards.general_dataset}"
-            + " --no_dropout --model cycle_gan --direction BtoA"
+            + " --checkpoints_dir {input.checkpoints_dir}"
+            + " --results_dir {output}"
+            + " --no_dropout"
+            + " --model cycle_gan"
+            + " --direction BtoA"
+            + " > {log}"
         )
