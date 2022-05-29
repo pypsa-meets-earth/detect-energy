@@ -51,8 +51,7 @@ rule cycle_train:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
         training_dataset=directory("datasets/{general_dataset}"),
-        checkpoints_dir="models/"
-    output: directory("models/cycletrain{general_dataset}"),
+    output: directory("models/{general_dataset}"),
     log: "logs/cycle_train_{general_dataset}.log"
     run:
         shell(
@@ -60,7 +59,7 @@ rule cycle_train:
             + " --dataroot " + os.path.abspath(input["training_dataset"])
             #+ " --results_dir {output}"
             + " --name " + wildcards["general_dataset"]
-            + " --checkpoints_dir {input.checkpoints_dir}"
+            + " --checkpoints_dir models/"
             + " --gpu_ids 0"
             + " --name {wildcards.general_dataset}"
             + " --model cycle_gan"
@@ -72,16 +71,16 @@ rule cycle_train:
 rule cycle_test:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
-        training_dataset=directory("datasets/{general_dataset}"),
-        checkpoints_dir="models/"
+        dataset_dir=directory("datasets/"),
+        model=directory("models/{general_dataset}")
     output: directory("datasets/cycletest{general_dataset}")
     log: "logs/cycle_test_{general_dataset}.log"
     run:
         shell(
-            "python " + os.path.join(input["cyclegan_dir"], "train.py")
-            + " --dataroot " + os.path.abspath(input["training_dataset"])
+            "python " + os.path.join(input["cyclegan_dir"], "test.py")
+            + " --dataroot " + os.path.abspath(os.path.join(input["dataset_dir"], wildcards["general_dataset"]))
             + " --name {wildcards.general_dataset}"
-            + " --checkpoints_dir {input.checkpoints_dir}"
+            + " --checkpoints_dir models/"
             + " --results_dir {output}"
             + " --no_dropout"
             + " --model cycle_gan"
