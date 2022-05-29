@@ -17,10 +17,11 @@ wildcard_constraints:
 # rule to setup the cyclegan repo
 rule setup_cyclegan:
     output: directory(CYCLEGAN_FULL_PATH)
+    log: "logs/setup_cyclegan.log"
     run:
-        shell("mkdir -p " + os.path.abspath(CYCLEGAN_PARENT_FOLDER))
-        shell("git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix " + CYCLEGAN_FULL_PATH)
-        shell("pip install -r " + CYCLEGAN_FULL_PATH + "/requirements.txt")
+        shell("mkdir -p {output} > {log}")
+        shell("git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix {output} > {log}")
+        shell("pip install -r {output}/requirements.txt > {log}")
 
 # Rule to download data from google drive
 rule download_dataset_gdrive:
@@ -32,29 +33,45 @@ rule download_dataset_gdrive:
         """
     run:
         dataset_name = wildcards["preload_dataset"]
-        shell("gdrive download --path datasets --force " + config["datasets"][dataset_name]["gdrive"])
+        shell(
+            "gdrive download --path " + os.path.dirname(output[0])
+            + " --force " + config["datasets"][dataset_name]["gdrive"]
+        )
         # name of the file to unzip
-        folder_data = "datasets/" + dataset_name
         import zipfile
-        with zipfile.ZipFile(folder_data + ".zip", "r") as zipObj:
+        with zipfile.ZipFile(output[0] + ".zip", "r") as zipObj:
             # Extract all the contents of zip file in current directory
-            zipObj.extractall(folder_data)
-        os.remove(folder_data + ".zip")
+            zipObj.extractall(os.path.dirname(output[0]))
+        os.remove(output[0] + ".zip")
 
 
 rule cycle_train:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
-        training_dataset=directory("datasets/{general_dataset}"),
+        training_dataset_A=directory("datasets/{general_dataset}"),
+        training_dataset_B=directory("datasets/{general_dataset}"),
+    output: directory("datasets/cycletrain{general_dataset}")
     run:
-        shell("cd " + CYCLEGAN_FULL_PATH)
-        shell("python train.py --dataroot " + os.path.abspath(input["training_dataset"]) + "--name " + wildcards["general_dataset"] + " --model cycle_gan")
+        shell(
+            "python {input.cyclegan_dir}/train.py"
+            + " --dataroot " + os.path.abspath(input["training_dataset"])
+            #+ " --results_dir {output}"
+            #+ " --name " + wildcards["general_dataset"]
+            + " --name {wildcards.general_dataset}"
+            + " --model cycle_gan"
+        )
 
 
 rule cycle_test:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
         training_dataset=directory("datasets/{general_dataset}"),
+    output: directory("datasets/cycletest{general_dataset}")
     run:
-        shell("cd " + CYCLEGAN_FULL_PATH)
-        shell("python train.py --dataroot " + os.path.abspath(input["training_dataset"]) + "--name " + wildcards["general_dataset"] + " --no_dropout --model cycle_gan --direction BtoA")
+        shell(
+            "python " + os.path.join(input["cyclegan_dir"], "train.py")
+            + " --dataroot " + os.path.abspath(input["training_dataset"])
+            + " --results_dir {output}"
+            + " --name {wildcards.general_dataset}"
+            + " --no_dropout --model cycle_gan --direction BtoA"
+        )
