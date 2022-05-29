@@ -46,7 +46,7 @@ rule download_dataset_gdrive:
             zipObj.extractall(os.path.dirname(output[0]))
         os.remove(output[0] + ".zip")
 
-
+# Execute training using cyclegan pix2pix
 rule cycle_train:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
@@ -68,6 +68,7 @@ rule cycle_train:
         )
 
 
+# Execute testing using cyclegan pix2pix
 rule cycle_test:
     input:
         cyclegan_dir=directory(CYCLEGAN_FULL_PATH),
