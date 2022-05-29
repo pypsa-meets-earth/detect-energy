@@ -1,4 +1,4 @@
-name: ml-energy-test
+name: ml-energy
 # conda env create -f requirements.yml
 # then conda activate dl
 # to remove, simply do conda env remove -n dl
