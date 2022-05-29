@@ -1,8 +1,12 @@
 /cluster-runs/datasets/*
 /cluster-runs/models/*
 /cluster-runs/checkpoints/*
+
+# workflow folders
 /.snakemake/*
 /datasets/*
+/models/*
+/logs/*
 
 /image_download/examples/
 /image_download/filter_images/
