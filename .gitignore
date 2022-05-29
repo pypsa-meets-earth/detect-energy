@@ -1,5 +1,8 @@
 /cluster-runs/datasets/*
 /cluster-runs/models/*
+/cluster-runs/checkpoints/*
+/.snakemake/*
+/datasets/*
 
 /image_download/examples/
 /image_download/filter_images/
