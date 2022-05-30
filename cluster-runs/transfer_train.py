@@ -312,7 +312,7 @@ def run_parameters(params):
     cfg.DATASETS.TEST = ['manual_maxar_val']
     cfg.DATASETS.EVAL = ['australia_val']
 
-    cfg.TEST.INTERVAL = 2
+    cfg.TEST.INTERVAL = 1000
     cfg.SOLVER.MAX_ITER = 12_000
     cfg.SOLVER.STEPS = (8_000, 10_000)
 
@@ -348,7 +348,7 @@ if __name__ == '__main__':
         'model_type': ['faster_rcnn_R_101_FPN_3x.yaml'],
         'SOLVER.BASE_LR': [1e-3],           # default
         'SOLVER.MOMENTUM': [0.9],           # default
-        'SOLVER.IMS_PER_BATCH': [4],
+        'SOLVER.IMS_PER_BATCH': [8],
         'SOLVER.WEIGHT_DECAY': [0.0001],    # first one is default
         'MODEL.ANCHOR_GENERATOR.SIZES': [[10, 20, 40, 80, 160]],
         }
