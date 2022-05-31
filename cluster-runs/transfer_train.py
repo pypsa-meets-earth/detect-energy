@@ -309,7 +309,7 @@ def run_parameters(params):
     cfg.MODEL.RETINANET.NUM_CLASSES = 1
 
     cfg.DATASETS.TRAIN = 'transmission_04_train'
-    cfg.DATASETS.TEST = ['manual_maxar_val']
+    cfg.DATASETS.TEST = ['australia_val']
     cfg.DATASETS.EVAL = ['australia_val']
 
     cfg.TEST.INTERVAL = 1000
