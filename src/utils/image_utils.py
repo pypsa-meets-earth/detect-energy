@@ -12,6 +12,12 @@ else:
     from cv2 import imshow as cv2_imshow
 
 
+__all__ = [
+    'get_true_images',
+    'downsample',
+]
+
+
 def get_true_images(dir, num, show=False):
     '''
     loads a list of images that all have a tower in them. dir has to be a directory
