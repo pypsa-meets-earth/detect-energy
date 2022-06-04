@@ -1,11 +1,15 @@
 import os
 import matplotlib.pyplot as plt
 from PIL import Image
-from torchvision import transforms
-import torch
+import numpy as np
+from PIL import Image
 import numpy as np
 import cv2
-from google.colab.patches import cv2_imshow
+
+if 'COLAB_GPU' in os.environ:
+    from google.colab.patches import cv2_imshow
+else:
+    from cv2 import imshow as cv2_imshow
 
 
 def get_true_images(dir, num, show=False):
@@ -43,3 +47,31 @@ def get_true_images(dir, num, show=False):
             plt.show()
     
     return imgs    
+
+
+
+def downsample(img, target_size=(256,256), quiet=True):
+    '''
+    Downsamples img to target_size
+
+    Args:
+        img(np.array): original array
+        target_size(Tuple[int, int]): desired dimension
+    '''
+
+    assert type(img).__module__ == np.__name__
+    nr, nc, l = img.shape
+    tr, tc = target_size
+    shrink_factor = min(tr/nr, tc/nc) # pick the smaller shrink factor
+
+    if not quiet:
+        print(f'original width {nc}, height: {nr}')
+    img_pil = Image.fromarray(img)
+    img_pil = img_pil.resize((round(nc*shrink_factor) ,round(nr*shrink_factor)))
+    img_resized = np.array(img_pil)
+
+    nr_, nc_, l_ = img_resized.shape
+    if not quiet:
+        print(f'resized width {nc_}, height: {nr_} with factor {shrink_factor}')
+
+    return img_resized
