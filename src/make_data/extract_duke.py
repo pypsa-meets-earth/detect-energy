@@ -334,6 +334,9 @@ def extract_duke_dataset(dirs,
                 # add secondary towers that happen to be in the same image
                 for j, other in annots.iterrows():
 
+                    if other['geometry'] == tower['geometry']: 
+                        continue
+
                     if not other['label'] in tower_types:
                         continue
 
@@ -371,9 +374,7 @@ def extract_duke_dataset(dirs,
                 
                 curr_dataset.add_sample(sample)
                 
-                
         export_dir = curr_path
-        label_field = "ground_truth"  
 
         # Export training dataset
         try:
