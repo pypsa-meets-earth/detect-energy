@@ -16,7 +16,7 @@ DUKE_DATASET:
   TRAIN_RATIO: 0.8
   DO_RESOLUTION_MATCHING: True
   TOWER_TYPES: ['DT', 'TT', 'OT']
-  TARGET_REOLUTION: 0.4 # meters/pixel
+  TARGET_RESOLUTION: 0.4 # meters/pixel
   TOWER_SIZE_LOWER_BOUND: None # number of pixels a tower has cover with height and width to not be removed
 
 MAXAR_DATASET:
