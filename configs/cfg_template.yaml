@@ -1,0 +1,43 @@
+# This configuration file defines a complete pipeline for transfer learning of AC towers in satellite imagery
+# It includes:
+#     1. Creation of a dataset from the GridTracer dataset (Duke dataset)
+#     2. Creation of a dataset from maxar satellite imagery for testing)
+#     3. (Optional) training of a cycle GAN model to translate between the two
+#     4. Transfer learning on a Faster R-CNN model
+#     5. Inference run, applying the trained model to large scale imagery and using a
+#        path finding algorithm
+
+META:
+  EXP_NAME: 'Test'
+  COUNTRY: 'bangladesh'
+  IMG_SIZE: 512
+
+DUKE_DATASET:
+  TRAIN_RATIO: 0.8
+  DO_RESOLUTION_MATCHING: True
+  TOWER_TYPES: ['DT', 'TT', 'OT']
+  TARGET_REOLUTION: 0.4 # meters/pixel
+  TOWER_SIZE_LOWER_BOUND: None # number of pixels a tower has cover with height and width to not be removed
+
+MAXAR_DATASET:
+  FILTER_BORDERS: True
+  FILTER_BLURRY: True
+  FILTER_CLOUDS: True
+
+CYCLE_MODEL:
+  DO_CYCLE_TRANSFER: True
+  CYCLE_WEIGHT: 0.5
+
+OBJECT_DETECTION_MODEL:  # model is always Faster R-CNN with 101 layered Resnet backbone
+  DO_FLIP_AUGMENTATION: True
+  DO_IMAGE_AUGMENTATION: True
+  WEIGHT_DECAY: 0.0001
+  BASE_LR: 0.001 
+  ANCHOR_SIZES: [[32, 64, 128, 256, 512]]
+  IMS_PER_BATCH: 16
+  MOMENTUM: 0.9
+  MAX_ITER: 40_000
+
+INFERENCE:
+  DO_INFERENCE: True
+  DATA_VOLUME: 3. # will iterate over whole raster files until size of files exceeds the volume [GByte]
