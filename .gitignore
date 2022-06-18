@@ -1,6 +1,8 @@
 /cluster-runs/datasets/*
 /cluster-runs/models/*
 
+/data/experiments/*
+
 /image_download/examples/
 /image_download/filter_images/
 /image_download/images/*.tif
