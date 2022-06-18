@@ -49,8 +49,9 @@ from src.utils.image_utils import downsample
 assert duke_path is not None, f'Could not locate .env file. Got duke_path {duke_path}'
 assert datasets_path is not None, f'Could not locate .env file. Got datasets_path {datasets_path}'
 
-def extract_duke_dataset(dirs, 
+def extract_duke_dataset( 
                          target_base_dir,
+                         dirs=None,
                          size=512, 
                          base_path="", 
                          train_ratio=0.8,
@@ -76,8 +77,9 @@ def extract_duke_dataset(dirs,
     
     ----------
     Arguments:
-        dirs : (list of str)
+        dirs : (list of str or None)
             list with names of directories which satisfy the outlined structure
+            if None a list of all countries in the duke dataset is inserted
         target_base_dir (str):
             directory where resulting datasets should be stored
         size : (int)
@@ -101,6 +103,24 @@ def extract_duke_dataset(dirs,
     Returns:
         -
     """
+
+    if dirs is None:
+        dirs = [ 
+                #'hartford',   #  (APPEARS TO HAVE CORRUPTED GEOJSON FILES)
+                'china',
+                'kansas',
+                'dunedin',
+                'gisborne',
+                'palmertson',
+                'rotorua',
+                'tauranga',
+                'wilmington',
+                'arizona',
+                'clyde',
+                'sudan',
+                'mexico',
+                'brazil',
+                ]
 
     prefixes = [word[:2].upper() for word in dirs]
 
@@ -453,24 +473,7 @@ if __name__ == "__main__":
     dataset_name = 'testset'
     target_base_dir = os.path.join(datasets_path, dataset_name)
     os.chdir(duke_path)
-    dirs = [ 
-            #'hartford',   #  (APPEARS TO HAVE CORRUPTED GEOJSON FILES)
-             'china',
-             'kansas',
-             'dunedin',
-             'gisborne',
-             'palmertson',
-             'rotorua',
-             'tauranga',
-             'wilmington',
-             'arizona',
-             'clyde',
-             'sudan',
-             'mexico',
-             'brazil',
-            ]
-
-    extract_duke_dataset(dirs, 
+    extract_duke_dataset(
                          target_base_dir, 
                          size=512,
                          train_ratio=0.8,

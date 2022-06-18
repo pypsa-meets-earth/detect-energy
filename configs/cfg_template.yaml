@@ -8,7 +8,7 @@
 #        path finding algorithm
 
 META:
-  EXP_NAME: 'Test'
+  EXP_NAME: 'test'
   COUNTRY: 'bangladesh'
   IMG_SIZE: 512
 
