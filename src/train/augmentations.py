@@ -32,10 +32,12 @@ def build_strong_augmentation(cfg, is_train):
     if is_train:
         
         augmentation.append(
-        transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8)
+        transforms.RandomApply([transforms.ColorJitter(*cfg.COLOR_JITTER)],
+                                                        p=cfg.COLOR_JITTER_P)
                 )
-        augmentation.append(transforms.RandomGrayscale(p=0.2))
-        augmentation.append(transforms.RandomApply([GaussianBlur([0.1, 1.5])], p=1))
+        augmentation.append(transforms.RandomGrayscale(p=cfg.RANDOM_GREY_P))
+        augmentation.append(transforms.RandomApply([
+                            GaussianBlur(cfg.GAUSSIAN_SIGMA)], p=1))
 
         datatype_transform = transforms.Compose([transforms.ToTensor(), transforms.ToPILImage(),])
         augmentation.append(datatype_transform)
