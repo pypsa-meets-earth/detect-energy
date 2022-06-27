@@ -49,7 +49,9 @@ class TransferDatasetMapper(DatasetMapper):
             self.compute_tight_boxes = True
         else:
             self.compute_tight_boxes = False
-        self.strong_augmentation = build_strong_augmentation(cfg, is_train)
+        self.strong_augmentation = build_strong_augmentation(
+                                        cfg.INPUT.STRONG_AUGMENTATION, 
+                                        is_train)
 
         # fmt: off
         self.img_format = cfg.INPUT.FORMAT
@@ -75,6 +77,7 @@ class TransferDatasetMapper(DatasetMapper):
         self.is_train = is_train
 
         self.transfer = cfg.INPUT.TRANSFER_PARAM
+        self.do_transfer = cfg.INPUT.DO_TRANSFER
         if is_train:
             self.transfer_path = cfg.DATASETS.TRANSFER_PATH_TRAIN
         else:
@@ -91,8 +94,13 @@ class TransferDatasetMapper(DatasetMapper):
         dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
         image = utils.read_image(dataset_dict["file_name"], format=self.img_format)
 
-        cycle_image = dataset_dict['file_name'].split('/')[-1]
-        cycle_image = os.path.join(self.transfer_path, cycle_image)
+
+        if self.do_transfer:
+            cycle_image = dataset_dict['file_name'].split('/')[-1]
+            cycle_image = os.path.join(self.transfer_path, cycle_image)
+        else:
+            cycle_image = dataset_dict['file_name']
+
         cycle_image = utils.read_image(cycle_image, format=self.img_format)
 
         image = torch.tensor(image.astype(float))
@@ -101,7 +109,7 @@ class TransferDatasetMapper(DatasetMapper):
         # created weighted overlay of cycle-transformed image and true image
         image = (self.transfer * cycle_image + 
                     (1. - self.transfer) * image)
-                    
+
         image = image.numpy().astype(int)
         image = image.astype('uint8')
 
