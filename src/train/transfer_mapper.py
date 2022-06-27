@@ -101,6 +101,7 @@ class TransferDatasetMapper(DatasetMapper):
         # created weighted overlay of cycle-transformed image and true image
         image = (self.transfer * cycle_image + 
                     (1. - self.transfer) * image)
+                    
         image = image.numpy().astype(int)
         image = image.astype('uint8')
 
