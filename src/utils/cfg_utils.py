@@ -20,6 +20,14 @@ def merge_cfgs(our_cfg, dt2_cfg):
     dt2_cfg.SOLVER.MOMENTUM = our_cfg.MOMENTUM
     dt2_cfg.SOLVER.WEIGHT_DECAY = our_cfg.WEIGHT_DECAY
     dt2_cfg.TEST.INTERVAL = our_cfg.EVAL_ITER
+
+    if our_cfg.CYCLE_WEIGHT == 0.:
+        dt2_cfg.INPUT.DO_TRANSFER = False
+    else:
+        dt2_cfg.INPUT.DO_TRANSFER = True
+
+    dt2_cfg.INPUT.TRANSFER_PARAM = our_cfg.CYCLE_WEIGHT
+    dt2_cfg.INPUT.CYCLE_WEIGHT = our_cfg.CYCLE_WEIGHT
     dt2_cfg.INPUT.DO_STRONG_AUGMENTATION = our_cfg.DO_STRONG_AUGMENTATION
     dt2_cfg.INPUT.STRONG_AUGMENTATION = CfgNode(our_cfg.AUGMENTATIONS)
 
