@@ -22,7 +22,7 @@ class DetectEnergyTrainer(DefaultTrainer):
     ''' 
 
     def __init__(self, cfg):
-        super().__init__(cfg)    
+        super().__init__(cfg)
 
 
         # setup evaluation

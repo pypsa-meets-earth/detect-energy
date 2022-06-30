@@ -78,9 +78,13 @@ class TransferDatasetMapper(DatasetMapper):
 
         self.transfer = cfg.INPUT.TRANSFER_PARAM
         self.do_transfer = cfg.INPUT.DO_TRANSFER
-        if is_train:
+        if not self.do_transfer:        
+            self.transfer_path = None
+
+        elif is_train and self.do_transfer:
             self.transfer_path = cfg.DATASETS.TRANSFER_PATH_TRAIN
-        else:
+
+        elif not is_train and self.do_transfer:
             self.transfer_path = cfg.DATASETS.TRANSFER_PATH_VAL
 
 

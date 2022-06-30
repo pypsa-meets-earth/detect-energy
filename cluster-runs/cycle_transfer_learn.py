@@ -337,7 +337,6 @@ class TuneTrainer(DefaultTrainer):
                     json.dump(results, out)
 
 
-
 def run_parameters(params):
     print(f'Starting run for parameters: {params}')
     params = AttrDict(params)
