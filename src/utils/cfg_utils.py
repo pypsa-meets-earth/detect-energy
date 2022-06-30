@@ -31,6 +31,9 @@ def merge_cfgs(our_cfg, dt2_cfg):
     dt2_cfg.INPUT.DO_STRONG_AUGMENTATION = our_cfg.DO_STRONG_AUGMENTATION
     dt2_cfg.INPUT.STRONG_AUGMENTATION = CfgNode(our_cfg.AUGMENTATIONS)
 
+    dt2_cfg.DATASETS.TRAIN = 'dataset_train'    
+    dt2_cfg.DATASETS.VAL = 'dataset_val'    
+
     dt2_cfg.DATASETS.TRANSFER_PATH_TRAIN = our_cfg.TRANSFER_PATH_TRAIN
     dt2_cfg.DATASETS.TRANSFER_PATH_VAL = our_cfg.TRANSFER_PATH_VAL
     dt2_cfg.OUTPUT_DIR = our_cfg.OUTPUT_DIR
