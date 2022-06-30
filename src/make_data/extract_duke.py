@@ -467,7 +467,6 @@ def extract_duke_dataset(
     print(f'Find validation set at: {val_path}')
 
 
-
 if __name__ == "__main__":
 
     dataset_name = 'testset'
