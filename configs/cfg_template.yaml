@@ -39,6 +39,8 @@ OBJECT_DETECTION_MODEL:  # model is always Faster R-CNN with 101 layered Resnet 
     RANDOM_GREY_P: 0.2
     COLOR_JITTER: [0.4, 0.4, 0.4, 0.1]
     COLOR_JITTER_P: 0.8
+  TRANSFER_PATH_TRAIN: None
+  TRANSFER_PATH_VAL: None
 
 INFERENCE:
   DO_INFERENCE: True
