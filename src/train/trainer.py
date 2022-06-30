@@ -12,7 +12,7 @@ from detectron2.engine import DefaultTrainer
 from detectron2.data import build_detection_test_loader, DatasetCatalog
 from detectron2.data import build_detection_train_loader
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
-from detectron2.mapper import DatasetMapper
+from detectron2.data import DatasetMapper
 
 
 
