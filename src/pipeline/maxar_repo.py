@@ -1,5 +1,7 @@
 import os
+import sys
 import logging
+logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', datefmt='%H:%M:%S')
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -12,13 +14,15 @@ from osm_towers import add_geom_towers
 
 
 logger = logging.getLogger('maxar.repo')
+# logger.addHandler(logging.StreamHandler(sys.stdout))
+logger.setLevel(logging.DEBUG)
 
 
 def tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, bounded):
     with rio.open(tif_file) as inds: 
         logger.debug(f'IN width = {inds.width}, height = {inds.height}')
         if inds.count != 3:
-            logger.error(f'Number of Bands is {inds.count}. Expected 3')
+            logger.error(f'Number of Bands is {inds.count}. Expected 3. Skipping ...')
             return None
 
         points = point_series.to_crs(inds.crs) # Projected to raster crs
@@ -32,9 +36,9 @@ def tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, b
             tile_x, tile_y = pl_x//tile_width, pl_y//tile_height
             tile_col, tile_row = int(tile_x*tile_width), int(tile_y*tile_height)
             tile_set.append((tile_col, tile_row))
-
+        logger.debug(f'Number of Tiles created from Points = {len(tile_set)}')
         tile_set = list(dict.fromkeys(tile_set)) #remove duplicates incase there are more than two points in a tile
-        yield tile_set # return the tiles that will be created
+        logger.debug(f'Number of Tiles after removing duplicates = {len(tile_set)}')
 
         # Generate windows corresponding to tiles
         ncols, nrows = inds.width, inds.height
@@ -50,18 +54,25 @@ def tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, b
             if bounded:
                 t_window = big_window.intersection(t_window)
             window_list.append(t_window)
+        logger.debug(f'Number of Windows created from Tiles = {len(window_list)}')
         
         # Generate tiles as GeoTiff files      
         meta = inds.meta.copy()
         for x_window in window_list:
+            # File Name Example 
+            postfix = f'tile_{x_window.col_off}_{x_window.row_off}.tif'
+            outpath = prefix + postfix
+            if os.path.exists(outpath):
+                logger.debug(f'{outpath} exists skipping ...')
+                continue
+            logger.debug(f'Writing Tif Tile with col_off =  {x_window.col_off} and row_off = {x_window.row_off}')
             # set meta
             meta['transform'] = rio.windows.transform(x_window, inds.transform)
             meta['width'], meta['height'] = x_window.width, x_window.height
             meta['driver'] = 'GTiff' # could use PNG?
-            # TODO: find file_number by listdir tif files, also use country code instead of name
-            # File Name Example 
-            postfix = f'tile_{x_window.col_off}_{x_window.row_off}'
-            outpath = prefix + postfix
+            if not os.path.exists(os.path.dirname(outpath)):
+                logger.error('TIF Out Path Does Not Exist')
+
             with rio.open(outpath, 'w', **meta) as outds:
                 # b, g, r = (inds.read(k,window=window) for k in (1, 2, 3))
                 # for k, arr in [(1, b), (2, g), (3, r)]:
@@ -94,27 +105,27 @@ class maxarImagery:
     def __init__(self, tif_dir):
         self.tif_dir = tif_dir
         self.tif_paths = [os.path.join(self.tif_dir, filename) for filename in os.listdir(self.tif_dir) if filename.endswith(".tif")]
-        self.coverage_path = os.path.join(self.tif_dir, "coverage.geojson")
         self.c_name = os.path.basename(os.path.dirname(tif_dir))
         self.c_dir = os.path.dirname(tif_dir)
+        self.coverage_path = os.path.join(self.tif_dir, "coverage.geojson")
 
 
     def get_info(self):
         for tif_file in self.tif_paths[0:1]:
             with rio.open(tif_file) as s:
                 logger.info('\n'.join(['',
-                    f"CRS = {s.crs}",
-                    f"Width = {s.width}, Height = {s.height}",
-                    f"{s.transform}",
-                    tuple(s.transform),
-                    f"Transform (GDAL) {s.transform.to_gdal()}",
-                    f"Transform (Shapely) {s.transform.to_shapely()}",
-                    s.tags(),
-                    f"Meta = {s.meta}",
-                    f"Driver = {s.driver}",
-                    # f"Dataset Mask = {s.dataset_mask()}",
-                    f"Bounds = {s.bounds}",
-                    f"Number of Bands = {s.count}"
+                    f'CRS = {s.crs}',
+                    f'Width = {s.width}, Height = {s.height}',
+                    f'{s.transform}',
+                    f'Transform (Rasterio) {tuple(s.transform)}',
+                    f'Transform (GDAL) {s.transform.to_gdal()}',
+                    f'Transform (Shapely) {s.transform.to_shapely()}',
+                    f'Tags = {s.tags()}',
+                    f'Meta = {s.meta}',
+                    f'Driver = {s.driver}',
+                    # f'Dataset Mask = {s.dataset_mask()}',
+                    f'Bounds = {s.bounds}',
+                    f'Number of Bands = {s.count}'
                 ]))
 
     def get_resolution(self):
@@ -134,7 +145,7 @@ class maxarImagery:
                 logger.info(f'{crs_code}')
             return crs_code
     
-    def get_tif_bounds(tif_file_path, dst_crs={'init': 'epsg:4326'}):
+    def get_tif_bounds(self, tif_file_path, dst_crs={'init': 'epsg:4326'}):
         if dst_crs is None:
             reproject = False
         else:
@@ -167,18 +178,21 @@ class maxarImagery:
         coverage = gpd.read_file(self.coverage_path)
         return coverage
 
-    def tile_tif(self, final_assets):
+    def tile_tif_dir(self, gdf_assets, tile_width, tile_height, overlap, bounded, out_path = None):
+        # tile_width, tile_height, overlap, bounded = 256, 256, 0, True
+        out_path = self.c_dir if out_path is None else out_path
+        tile_path = os.path.join(out_path, self.c_name, f'tif_tiles_{tile_width}_{tile_height}_{overlap}')
+        tile_path += '_B' if bounded else ''
+        os.makedirs(tile_path, exist_ok=True)
+        logger.debug(f'Tiling Tifs for {self.c_name} and saving to {tile_path}')
+
         gc = self.get_coverage()
-        joined_assets = final_assets.sjoin(gc, how='inner')
+        joined_assets = gpd.sjoin(gdf_assets, gc, how='inner')
         file_point = joined_assets.groupby('filename')['geometry'].apply(list)
-        tile_width, tile_height, overlap, bounded = 256, 256, 0, True
-        
         for file_number, (tif_file, point_list) in enumerate(tqdm(file_point.iteritems(),total=file_point.shape[0]),1):
                 point_series = gpd.GeoSeries(point_list, crs=4326)  # create GeoSeries of points
-                prefix = os.path.join(self.c_dir, f'tif_tiles_{tile_width}_{tile_height}_{overlap}')
-                prefix += '_B' if bounded else ''
-                prefix = os.path.join(prefix, f'{self.c_name}_{file_number}')
-                tile_set = tile_tif(tif_file, point_series, prefix)
+                prefix = os.path.join(tile_path, f'{self.c_name}_{file_number}_')
+                tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, bounded)
 
 
 
@@ -206,11 +220,16 @@ class maxarRepo:
             self.country_dict = country_dict
         else:
             self.country_dirs = os.listdir(self.repo_path)
-            logger.info (print('missing regions in all_dict', set(self.country_dirs) - set(self.country_dict.keys())))
+            logger.info (print('missing regions', set(self.country_dirs) - set(self.country_dict.keys())))
         
         self.tif_dirs = [os.path.join(self.repo_path, c_dir,'raw') for c_dir in self.country_dict.keys()]
 
-    def get_hv_towers(self):
+    def get_hv_towers(self, cache_dir = None):
+
+            cache = True if cache_dir is not None else False
+            if os.path.exists(os.path.join(cache_dir, 'cached_hv_towers.geojson')) and cache:
+                return gpd.read_file(os.path.join(cache_dir, 'cached_hv_towers.geojson'))
+
             # TODO: Move this function somewhere else
             # check if assets available
             for c_dir in self.country_dict.keys():
@@ -235,6 +254,9 @@ class maxarRepo:
             line_all = pd.concat(map(pd.read_csv, line_paths))
 
             gdf_hv_t = add_geom_towers(assets_all, tower_all, line_all, hv_thresh = 100000)
+
+            if cache:
+                gdf_hv_t.to_file(os.path.join(cache_dir, 'cached_hv_towers.geojson'), driver='GeoJSON')
 
             return gdf_hv_t
 
@@ -267,6 +289,13 @@ class maxarRepo:
             total_coverage = total_coverage.append(coverage, ignore_index=True)
         return total_coverage
 
+    def generate_all_tiles(self):
+        hv_tower_assets = self.get_hv_towers()
+        for tif_dir in self.tif_dirs:
+            m_sat = maxarImagery(tif_dir)
+            m_sat.tile_tif_dir(hv_tower_assets)
+
+
 
 
             
@@ -274,32 +303,32 @@ class maxarRepo:
 
 
 
+if __name__ == '__main__':
+    tile_width, tile_height, overlap, bounded = 256, 256, 0, True
+
+    # Dict for experiments (subset of all_dict)
+    c_dict = {
+        'australia': 'AU',
+        'bangladesh': 'BD',
+        # 'chad': 'TD',
+        # 'drc': 'CD',
+        'ghana': 'GH',
+        # 'malawi': 'MW',
+        # 'sierra_leone': 'SL',
+        # 'california': 'US-CA',
+        # 'texas': 'US-TX',
+        # 'brazil': 'BR',
+        'south_africa':'ZA',
+        # 'germany': 'DE',
+        # 'philippines': 'PH'
+        }
 
 
+    myMaxar = maxarRepo('/mnt/gdrive/maxar', '/mnt/gdrive/osm', c_dict)
 
-
-# Dict for experiments (subset of all_dict)
-c_dict = {
-    'australia': 'AU',
-    'bangladesh': 'BD',
-    # 'chad': 'TD',
-    # 'drc': 'CD',
-    'ghana': 'GH',
-    # 'malawi': 'MW',
-    # 'sierra_leone': 'SL',
-    # 'california': 'US-CA',
-    # 'texas': 'US-TX',
-    # 'brazil': 'BR',
-    'south_africa':'ZA',
-    # 'germany': 'DE',
-    # 'philippines': 'PH'
-    }
-
-
-myMaxar = maxarRepo('/mnt/gdrive/maxar', '/mnt/gdrive/osm', c_dict)
-
-# print(myMaxar.get_hv_towers())
-print(myMaxar.get_crs_dict())
+    hv_tower_assets = myMaxar.get_hv_towers(cache_dir='./')
+    ghanaTif = maxarImagery('/mnt/gdrive/maxar/ghana/raw')
+    ghanaTif.tile_tif_dir(hv_tower_assets, tile_width, tile_height, overlap, bounded, './temp_tiles')
 
 # ghana = 
 
