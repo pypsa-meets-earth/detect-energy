@@ -65,7 +65,7 @@ def tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, b
             if os.path.exists(outpath):
                 logger.debug(f'{outpath} exists skipping ...')
                 continue
-            logger.debug(f'Writing Tif Tile with col_off =  {x_window.col_off} and row_off = {x_window.row_off}')
+            # logger.debug(f'Writing Tif Tile with col_off =  {x_window.col_off} and row_off = {x_window.row_off}')
             # set meta
             meta['transform'] = rio.windows.transform(x_window, inds.transform)
             meta['width'], meta['height'] = x_window.width, x_window.height
@@ -206,7 +206,7 @@ class maxarRepo:
             'bangladesh': 'BD',
             'chad': 'TD',
             'drc': 'CD',
-            'ghana': 'GH',
+            'ghana': 'GH', 
             'malawi': 'MW',
             'sierra_leone': 'SL',
             'california': 'US-CA',
@@ -222,13 +222,14 @@ class maxarRepo:
             self.country_dirs = os.listdir(self.repo_path)
             logger.info (print('missing regions', set(self.country_dirs) - set(self.country_dict.keys())))
         
-        self.tif_dirs = [os.path.join(self.repo_path, c_dir,'raw') for c_dir in self.country_dict.keys()]
+        self.tif_dirs = [os.path.join(self.repo_path, c_dir, 'raw') for c_dir in self.country_dict.keys()]
 
     def get_hv_towers(self, cache_dir = None):
 
             cache = True if cache_dir is not None else False
-            if os.path.exists(os.path.join(cache_dir, 'cached_hv_towers.geojson')) and cache:
-                return gpd.read_file(os.path.join(cache_dir, 'cached_hv_towers.geojson'))
+            if cache:
+                if os.path.exists(os.path.join(cache_dir, 'cached_hv_towers.geojson')):
+                    return gpd.read_file(os.path.join(cache_dir, 'cached_hv_towers.geojson'))
 
             # TODO: Move this function somewhere else
             # check if assets available
@@ -289,11 +290,11 @@ class maxarRepo:
             total_coverage = total_coverage.append(coverage, ignore_index=True)
         return total_coverage
 
-    def generate_all_tiles(self):
-        hv_tower_assets = self.get_hv_towers()
+    def generate_all_tiles(self, tile_width, tile_height, overlap, bounded, out_path):
+        hv_tower_assets = self.get_hv_towers('./')
         for tif_dir in self.tif_dirs:
             m_sat = maxarImagery(tif_dir)
-            m_sat.tile_tif_dir(hv_tower_assets)
+            m_sat.tile_tif_dir(hv_tower_assets, tile_width, tile_height, overlap, bounded, out_path)
 
 
 
@@ -326,9 +327,11 @@ if __name__ == '__main__':
 
     myMaxar = maxarRepo('/mnt/gdrive/maxar', '/mnt/gdrive/osm', c_dict)
 
-    hv_tower_assets = myMaxar.get_hv_towers(cache_dir='./')
-    ghanaTif = maxarImagery('/mnt/gdrive/maxar/ghana/raw')
-    ghanaTif.tile_tif_dir(hv_tower_assets, tile_width, tile_height, overlap, bounded, './temp_tiles')
+    myMaxar.generate_all_tiles(tile_width, tile_height, overlap, bounded, './temp_tiles')
+
+    # hv_tower_assets = myMaxar.get_hv_towers(cache_dir='./')
+    # ghanaTif = maxarImagery('/mnt/gdrive/maxar/ghana/raw')
+    # ghanaTif.tile_tif_dir(hv_tower_assets, tile_width, tile_height, overlap, bounded, './temp_tiles')
 
 # ghana = 
 
