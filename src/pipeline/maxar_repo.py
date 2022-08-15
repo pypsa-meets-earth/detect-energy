@@ -30,7 +30,21 @@ logger.setLevel(logging.DEBUG)
 #         except:
 #             pass
 
-
+ALL_COUNTRY_DICT = { # Dict of all currently available imagery
+            'australia': 'AU',
+            'bangladesh': 'BD',
+            'chad': 'TD',
+            'drc': 'CD',
+            'ghana': 'GH', 
+            'malawi': 'MW',
+            'sierra_leone': 'SL',
+            'california': 'US-CA',
+            'texas': 'US-TX',
+            'brazil': 'BR',
+            'south_africa':'ZA',
+            'germany': 'DE',
+            'philippines': 'PH'
+            }
 
 def tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, bounded):
     # with rio.open(tif_file) as inds:
@@ -240,22 +254,7 @@ class maxarRepo:
         self.repo_path = repo_path
         self.osm_path = osm_path
         self.cache_dir = cache_dir
-        self.country_dict = { 
-            # Dict of all currently available imagery
-            'australia': 'AU',
-            'bangladesh': 'BD',
-            'chad': 'TD',
-            'drc': 'CD',
-            'ghana': 'GH', 
-            'malawi': 'MW',
-            'sierra_leone': 'SL',
-            'california': 'US-CA',
-            'texas': 'US-TX',
-            'brazil': 'BR',
-            'south_africa':'ZA',
-            'germany': 'DE',
-            'philippines': 'PH'
-            }
+        self.country_dict = ALL_COUNTRY_DICT
         if country_dict is not None:
             self.country_dict = country_dict
         else:
