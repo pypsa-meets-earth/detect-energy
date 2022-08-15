@@ -250,8 +250,9 @@ class maxarImagery:
 
 
 class maxarRepo:
-    def __init__(self, repo_path, osm_path, country_dict, cache_dir):
-        self.repo_path = repo_path
+    def __init__(self, repo_path, sub_repo, osm_path, country_dict, cache_dir):
+        self.repo_path = repo_path # './maxar_repo'
+        self.sub_repo = sub_repo # 'raw', 'links', 'tif_tiles_X_X_X_X
         self.osm_path = osm_path
         self.cache_dir = cache_dir
         self.country_dict = ALL_COUNTRY_DICT
@@ -259,9 +260,9 @@ class maxarRepo:
             self.country_dict = country_dict
         else:
             self.country_dirs = os.listdir(self.repo_path)
-            logger.info (print('missing regions', set(self.country_dirs) - set(self.country_dict.keys())))
+            logger.error (print('missing regions in default dict', set(self.country_dirs) - set(self.country_dict.keys())))
         
-        self.tif_dirs = [os.path.join(self.repo_path, c_dir, 'raw') for c_dir in self.country_dict.keys()]
+        self.tif_dirs = [os.path.join(self.repo_path, c_name, self.sub_repo) for c_name in self.country_dict.keys()]
 
     def get_hv_towers(self, cache_dir = None):
 
