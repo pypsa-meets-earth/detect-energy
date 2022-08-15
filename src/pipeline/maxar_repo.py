@@ -337,45 +337,43 @@ class maxarRepo:
 
 
 
-
-            
-
-
-
-
 if __name__ == '__main__':
     tile_width, tile_height, overlap, bounded = 256, 256, 0, True
 
     # Dict for experiments (subset of all_dict)
     c_dict = {
+        'gambia': 'GM',  #ARD
+        'pakistan': 'PK',  #ARD
         'australia': 'AU',
         'bangladesh': 'BD',
         # 'chad': 'TD',
         # 'drc': 'CD',
         'ghana': 'GH',
         # 'malawi': 'MW',
-        # 'sierra_leone': 'SL',
+        'sierra_leone': 'SL', # Low-Res 0.5
         # 'california': 'US-CA',
         # 'texas': 'US-TX',
         # 'brazil': 'BR',
-        'south_africa':'ZA',
+        'south_africa':'ZA', #ARD
         # 'germany': 'DE',
         # 'philippines': 'PH'
         }
 
 
-    myMaxar = maxarRepo('/mnt/gdrive/maxar', '/mnt/gdrive/osm', c_dict, './')
-
-    # myMaxar.generate_all_tiles(tile_width, tile_height, overlap, bounded, './temp_tiles')
+    myMaxar = maxarRepo('./maxar_repo', 'links', './osm', c_dict, './')
+    myMaxar.get_repo_resolution()
+    # myMaxar.generate_all_tiles(tile_width, tile_height, overlap, bounded)
 
     # hv_tower_assets = myMaxar.get_hv_towers(cache_dir='./')
-    ghanaTif = maxarImagery('/home/matin/detect_energy/maxar_test/ghana/links')
-    # ghanaTif.tile_tif_dir(hv_tower_assets, tile_width, tile_height, overlap, bounded, './temp_tiles')
-    ghanaTif.get_coverage(True)
-    ghanaTif.tile_tif_dir(myMaxar.get_hv_towers('./'), tile_width, tile_height, overlap, bounded)
-# ghana = 
+    # ghanaTif = maxarImagery('/home/matin/detect_energy/maxar_test/ghana/links')
+    # # ghanaTif.tile_tif_dir(hv_tower_assets, tile_width, tile_height, overlap, bounded, './temp_tiles')
+    # ghanaTif.get_coverage(True)
+    # ghanaTif.tile_tif_dir(myMaxar.get_hv_towers('./'), tile_width, tile_height, overlap, bounded)
+
 
 # sudo rclone mount mygrdrive:/PyPSA_Africa_images /mnt/gdrive --config=/home/matin/.config/rclone/rclone.conf --allow-other --drive-shared-with-me
+# conda install -c conda-forge shapely rasterio pyproj pandas numpy geopandas
+
 
 # Visualize Coverage
 
