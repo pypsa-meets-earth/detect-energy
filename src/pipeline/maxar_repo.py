@@ -36,8 +36,8 @@ def tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, b
     # with rio.open(tif_file) as inds:
     try:
         inds = rio.open(tif_file)
-    except:
-        logger.error(f'Error Opening {tif_file}')
+    except Exception as e:
+        logger.error(e, exc_info=True)
         raise IOError
     logger.debug(f'IN width = {inds.width}, height = {inds.height}')
     if inds.count != 3:
