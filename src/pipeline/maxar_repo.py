@@ -182,7 +182,7 @@ class maxarImagery:
             with rio.open(tif_file) as src:
                 utm_dst_crs = get_utm_from_wgs(*src.bounds) if src.crs.is_geographic else src.crs
                 transform, width, height = rio.warp.calculate_default_transform(src.crs, utm_dst_crs, src.width, src.height, *src.bounds)
-                logger.info(f'x_res = {transform.a}, y_res = {-transform.e}')
+                # logger.debug(f'x_res = {transform.a}, y_res = {-transform.e}')
                 return(transform.a, -transform.e)
     
     def get_crs_code(self):
@@ -236,15 +236,17 @@ class maxarImagery:
         logger.debug(f'Tiling Tifs for {self.c_name} and saving to {tile_path}')
 
         gc = self.get_coverage()
-        joined_assets = gpd.sjoin(gdf_assets, gc, how='inner')
+        if gdf_assets.crs != gc.crs:
+            logger.debug(f'Assets CRS: {gdf_assets.crs}, Coverage CRS: {gc.crs}, Reprojecting to Assets CRS')
+        joined_assets = gpd.sjoin(gdf_assets, gc.to_crs(gdf_assets.crs), how='inner') # TODO: Project gdf_assets to gc
         file_point = joined_assets.groupby('filename')['geometry'].apply(list)
         for file_number, (tif_file, point_list) in enumerate(tqdm(file_point.iteritems(),total=file_point.shape[0]),1):
-                point_series = gpd.GeoSeries(point_list, crs=4326)  # create GeoSeries of points
+                point_series = gpd.GeoSeries(point_list, crs=joined_assets.crs)  # create GeoSeries of points
                 prefix = os.path.join(tile_path, f'{self.c_name}_{file_number}_')
                 try:
                     tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, bounded)
                 except IOError:
-                    logger.error('Excepted IOError, skipping ...')
+                    logger.error(f'Excepted IOError for {tif_file}, skipping ...')
                     pass
 
 
@@ -309,8 +311,6 @@ class maxarRepo:
             crs_dict[m_sat.c_name] = str(crs_code)
         logger.info(crs_dict)
         return crs_dict
-
-
 
     def get_repo_resolution(self):
         # Check Resolution of Dataset
