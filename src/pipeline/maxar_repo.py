@@ -329,7 +329,7 @@ class maxarRepo:
             total_coverage = total_coverage.append(coverage, ignore_index=True)
         return total_coverage
 
-    def generate_all_tiles(self, tile_width, tile_height, overlap, bounded, out_path):
+    def generate_all_tiles(self, tile_width, tile_height, overlap, bounded, out_path = None):
         hv_tower_assets = self.get_hv_towers(self.cache_dir)
         for tif_dir in self.tif_dirs:
             m_sat = maxarImagery(tif_dir)
