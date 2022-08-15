@@ -7,7 +7,13 @@
 /image_download/filter_images/
 /image_download/images/*.tif
 
+/maxar_repo
+/osm
 token_cache.bin
+
+# Tif Files
+*.tif
+*.tiff
 
 ### JupyterNotebooks ###
 .ipynb_checkpoints
