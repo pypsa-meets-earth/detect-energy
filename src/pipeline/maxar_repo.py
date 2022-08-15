@@ -316,9 +316,8 @@ class maxarRepo:
         # Check Resolution of Dataset
         for tif_dir in self.tif_dirs:
             m_sat = maxarImagery(tif_dir)
-            x_res, y_res = m_sat.get_resolution
+            x_res, y_res = m_sat.get_resolution()
             logger.info(f'country: {m_sat.c_name}, x_res = {x_res}, y_res = {y_res}')
-
 
     def get_total_coverage(self):
         # coverage_paths = [os.path.join(ds_path,c_dir,'coverage.geojson') for c_dir in all_dict.keys()]
