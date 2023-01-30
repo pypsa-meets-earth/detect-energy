@@ -10,6 +10,7 @@ import rasterio as rio
 import rasterio.warp
 import shapely
 
+from tif_tiling import tile_tif
 from osm_towers import add_geom_towers
 
 
@@ -46,76 +47,6 @@ ALL_COUNTRY_DICT = { # Dict of all currently available imagery
             'philippines': 'PH'
             }
 
-def tile_tif(tif_file, point_series, prefix, tile_width, tile_height, overlap, bounded):
-    # with rio.open(tif_file) as inds:
-    try:
-        inds = rio.open(tif_file)
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        raise IOError
-    logger.debug(f'IN width = {inds.width}, height = {inds.height}')
-    if inds.count != 3:
-        logger.error(f'Number of Bands is {inds.count}. Expected 3. Skipping ...')
-        inds.close()
-        return None
-
-    points = point_series.to_crs(inds.crs) # Projected to raster crs
-    coord_list = [(x,y) for x,y in zip(points.x , points.y)]
-
-    # Generate requred tiles
-    tile_set=[]
-    for coord in coord_list:
-        pixel_loc = ~inds.transform * coord # transform maps (row,col) to spatial location, ~ reverses transform
-        pl_x, pl_y = pixel_loc
-        tile_x, tile_y = pl_x//tile_width, pl_y//tile_height
-        tile_col, tile_row = int(tile_x*tile_width), int(tile_y*tile_height)
-        tile_set.append((tile_col, tile_row))
-    logger.debug(f'Number of Tiles created from Points = {len(tile_set)}')
-    tile_set = list(dict.fromkeys(tile_set)) #remove duplicates incase there are more than two points in a tile
-    logger.debug(f'Number of Tiles after removing duplicates = {len(tile_set)}')
-
-    # Generate windows corresponding to tiles
-    ncols, nrows = inds.width, inds.height
-    big_window = rio.windows.Window(col_off=0, row_off=0, width=ncols, height=nrows)
-    window_list = []
-    for tile_rc in tile_set:
-        tile_col, tile_row = tile_rc
-        t_window = rio.windows.Window(
-            col_off=tile_col - overlap,
-            row_off=tile_row - overlap,
-            width=tile_width + overlap * 2,
-            height=tile_height + overlap * 2)
-        if bounded:
-            t_window = big_window.intersection(t_window)
-        window_list.append(t_window)
-    logger.debug(f'Number of Windows created from Tiles = {len(window_list)}')
-    
-    # Generate tiles as GeoTiff files      
-    meta = inds.meta.copy()
-    for x_window in tqdm(window_list):
-        # File Name Example 
-        postfix = f'tile_{x_window.col_off}_{x_window.row_off}.tif'
-        outpath = prefix + postfix
-        if os.path.exists(outpath):
-            logger.debug(f'{outpath} exists skipping ...')
-            inds.close()
-            continue
-        # logger.debug(f'Writing Tif Tile with col_off =  {x_window.col_off} and row_off = {x_window.row_off}')
-        # set meta
-        meta['transform'] = rio.windows.transform(x_window, inds.transform)
-        meta['width'], meta['height'] = x_window.width, x_window.height
-        meta['driver'] = 'GTiff' # could use PNG?
-        if not os.path.exists(os.path.dirname(outpath)):
-            logger.error('TIF Out Path Does Not Exist')
-
-        with rio.open(outpath, 'w', **meta) as outds:
-            # b, g, r = (inds.read(k,window=window) for k in (1, 2, 3))
-            # for k, arr in [(1, b), (2, g), (3, r)]:
-            #   outds.write(arr, indexes=k)
-            outds.write(inds.read(window=x_window))
-    inds.close()
-
-
 def get_utm_from_wgs(w_lon, s_lat, e_lon, n_lat):
     from pyproj import CRS
     from pyproj.aoi import AreaOfInterest
@@ -135,6 +66,12 @@ def get_utm_from_wgs(w_lon, s_lat, e_lon, n_lat):
         return None
     utm_crs = CRS.from_epsg(utm_crs_list[0].code) # just return the first one for now
     return utm_crs.to_string()
+
+def get_resolution(ds):
+    utm_dst_crs = get_utm_from_wgs(*ds.bounds) if ds.crs.is_geographic else ds.crs
+    transform, width, height = rio.warp.calculate_default_transform(ds.crs, utm_dst_crs, ds.width, ds.height, *ds.bounds)
+    # logger.debug(f'x_res = {transform.a}, y_res = {-transform.e}')
+    return(transform.a, -transform.e)
     
 
 class maxarImagery:
@@ -155,6 +92,8 @@ class maxarImagery:
             self.tif_paths = tif_links
         
         elif os.path.basename(tif_repo) == 'raw':
+            self.tif_paths = [os.path.join(tif_repo, filename) for filename in os.listdir(tif_repo) if filename.endswith(".tif")]
+        elif os.path.basename(tif_repo).startswith('tif_tiles'):
             self.tif_paths = [os.path.join(tif_repo, filename) for filename in os.listdir(tif_repo) if filename.endswith(".tif")]
         else:
             raise NotImplementedError
@@ -177,13 +116,11 @@ class maxarImagery:
                     f'Number of Bands = {s.count}'
                 ]))
 
-    def get_resolution(self):
+    def get_dir_resolution(self):
         for tif_file in self.tif_paths[0:1]:
             with rio.open(tif_file) as src:
-                utm_dst_crs = get_utm_from_wgs(*src.bounds) if src.crs.is_geographic else src.crs
-                transform, width, height = rio.warp.calculate_default_transform(src.crs, utm_dst_crs, src.width, src.height, *src.bounds)
-                # logger.debug(f'x_res = {transform.a}, y_res = {-transform.e}')
-                return(transform.a, -transform.e)
+                return get_resolution(src)
+
     
     def get_crs_code(self):
         for tif_file in self.tif_paths[0:1]: # CRS for all files in one CC are the same
@@ -226,6 +163,19 @@ class maxarImagery:
         
         coverage = gpd.read_file(self.coverage_path)
         return coverage
+
+    def get_joined_assets(self, gdf_assets):
+        coverage = self.get_coverage()
+        if gdf_assets.crs != coverage.crs:
+            logger.debug(f'Assets CRS: {gdf_assets.crs}, Coverage CRS: {coverage.crs}, Reprojecting to Assets CRS')
+        joined_assets = gpd.sjoin(gdf_assets, coverage.to_crs(gdf_assets.crs), how='inner')
+        return joined_assets
+
+    def get_file_point(self, gdf_assets):
+        joined_assets = self.get_joined_assets(gdf_assets)
+        file_point = joined_assets.groupby('filename')['geometry'].apply(list)
+        return file_point
+
 
     def tile_tif_dir(self, gdf_assets, tile_width, tile_height, overlap, bounded, out_path = None):
         # tile_width, tile_height, overlap, bounded = 256, 256, 0, True
@@ -316,7 +266,7 @@ class maxarRepo:
         # Check Resolution of Dataset
         for tif_dir in self.tif_dirs:
             m_sat = maxarImagery(tif_dir)
-            x_res, y_res = m_sat.get_resolution()
+            x_res, y_res = m_sat.get_dir_resolution()
             logger.info(f'country: {m_sat.c_name}, x_res = {x_res}, y_res = {y_res}')
 
     def get_total_coverage(self):
@@ -344,19 +294,23 @@ if __name__ == '__main__':
     c_dict = {
         'gambia': 'GM',  #ARD
         'pakistan': 'PK',  #ARD
-        'australia': 'AU',
-        'bangladesh': 'BD',
+        # 'australia': 'AU', #0.38
+        # 'bangladesh': 'BD',  # Low-Res 0.55
         # 'chad': 'TD',
         # 'drc': 'CD',
-        'ghana': 'GH',
+        # 'ghana': 'GH', # 0.37
         # 'malawi': 'MW',
-        'sierra_leone': 'SL', # Low-Res 0.5
+        # 'sierra_leone': 'SL', # Low-Res 0.57
         # 'california': 'US-CA',
         # 'texas': 'US-TX',
-        # 'brazil': 'BR',
         'south_africa':'ZA', #ARD
         # 'germany': 'DE',
         # 'philippines': 'PH'
+        'sudan': 'SD', #ARD
+        # 'afghanistan': 'AF', #ARD (links not working)
+        'brazil': 'BR', #ARD
+        'philippines': 'PH', #ARD
+
         }
 
 
