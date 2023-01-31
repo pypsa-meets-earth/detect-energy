@@ -2,12 +2,18 @@ import torch
 import copy
 import numpy as np
 import random
+import json
 from PIL import Image, ImageFilter
 import torchvision.transforms as transforms
 
 from detectron2.data import DatasetMapper
 from detectron2.data import transforms as T
 from detectron2.data import detection_utils as utils
+from detectron2.engine import DefaultTrainer
+from detectron2.evaluation import COCOEvaluator, inference_on_dataset
+from detectron2.data import build_detection_test_loader
+from detectron2.data import build_detection_train_loader
+from detectron2.data import DatasetCatalog
 
 
 class GaussianBlur:
@@ -171,3 +177,54 @@ class DatasetMapperAugment(DatasetMapper):
         )
         return dataset_dict
     
+
+class OurTrainer(DefaultTrainer):
+
+    def __init__(self, cfg):
+        super().__init__(cfg)
+
+        if isinstance(cfg.DATASETS.EVAL, str):
+            self.eval_datasets = [cfg.DATASETS.EVAL]
+        else:
+            self.eval_datasets = cfg.DATASETS.EVAL
+
+        # prepare evaluation
+        self.eval_loaders = []
+        self.evaluators = []
+        for dataset in self.eval_datasets:
+
+            loader = build_detection_test_loader(DatasetCatalog.get(dataset), 
+                                                 mapper=DatasetMapper(cfg, is_train=False))
+
+            self.eval_loaders.append(loader)
+            self.evaluators.append(COCOEvaluator(
+                dataset,
+                output_dir=cfg.OUTPUT_DIR 
+                ))
+    
+    def build_train_loader(cls, cfg):
+        if cfg.SOLVER.STRONG_AUGMENT:
+            print("STRONG AUGMENTATIONS TO TRAINING SET")
+            return build_detection_train_loader(cfg, mapper=DatasetMapperAugment(cfg, is_train=True)) 
+        else:
+            return build_detection_train_loader(cfg)
+
+    
+    def after_step(self):
+        super().after_step()
+
+        if (self.iter+1) % self.cfg.TEST.INTERVAL == 0:                                   
+    
+            for dataset, loader, evaluator in zip(self.eval_datasets, 
+                                                    self.eval_loaders,
+                                                    self.evaluators):
+    
+                results = inference_on_dataset(self.model,
+                                                loader,
+                                                evaluator)
+                with open(
+                    os.path.join(
+                        self.cfg.OUTPUT_DIR,
+                        'eval_'+dataset+'_iter_'+str(self.iter)+'.json'),
+                        'w') as out:
+                    json.dump(results, out)
